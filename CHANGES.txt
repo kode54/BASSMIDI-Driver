@@ -1,0 +1,32 @@
+3.0:
+  driver/installer/config
+  * fixed volume setting
+  winmm driver
+  * added driver callbacks
+  * added event syncs on soundfont load, fixes delay at start
+  * no longer tied to GUIDs
+  * added dynamic BASS/BASSMIDI loading, uses GetModuleFilename for path
+2.02:
+  installer/driver
+  * worked around PopCap game bugs
+2.01:
+  installer
+  * now uninstalls previous content if installed
+  * does better checks on host registry keys
+  * auto close check dialog if no driver loading apps running
+2.0:
+* driver:
+  - rewrote core driver to interface with DirectMusic
+  - fixed latency on driver initialization
+  - fixed bugs with various programs eg. vanbasco
+  - fixed a GS rhythm channel allocation bug
+1.06:
+* driver:
+  - updated bassmidi to 2.4.6.2
+  - now can change synth volume
+  config:
+  - rewritten to use WTL (tabs, etc)
+  - added new advanced options tab to use new driver features
+
+1.00-1.05: changes to installer and configuration to improve user experience
+1.00: initial version
