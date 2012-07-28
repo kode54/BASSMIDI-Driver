@@ -414,7 +414,7 @@ int bmsyn_play_some_data(void){
 				BASS_MIDI_StreamEvents( hStream, BASS_MIDI_EVENTS_RAW, sysexbuffer, exlen );
 				if ( ( exlen == _countof( sysex_gm_reset ) && !memcmp( sysexbuffer, sysex_gm_reset, _countof( sysex_gm_reset ) ) ) ||
 					( exlen == _countof( sysex_gm2_reset ) && !memcmp( sysexbuffer, sysex_gm2_reset, _countof( sysex_gm2_reset ) ) ) ||
-					( exlen == _countof( sysex_gs_reset ) && !memcmp( sysexbuffer, sysex_gs_reset, _countof( sysex_gs_reset ) ) ) ||
+					( exlen == _countof( sysex_gs_reset ) && !is_gs_reset( (unsigned char*)sysexbuffer, _countof( sysex_gs_reset ) ) ) ||
 					( exlen == _countof( sysex_xg_reset ) && !memcmp( sysexbuffer, sysex_xg_reset, _countof( sysex_xg_reset ) ) ) ) {
 					ResetDrumChannels();
 					synth_mode = ( exlen == _countof( sysex_xg_reset ) ) ? synth_mode_xg :
@@ -470,7 +470,7 @@ int check_sinc()
 	DWORD dwType=REG_DWORD;
 	DWORD dwSize=sizeof(DWORD);
 	lResult = RegOpenKeyEx(HKEY_LOCAL_MACHINE, L"Software\\BASSMIDI Driver", 0, KEY_READ, &hKey);
-	RegQueryValueEx(hKey, L"interpolation", NULL, &dwType,(LPBYTE)&sinc, &dwSize);
+	RegQueryValueEx(hKey, L"sinc", NULL, &dwType,(LPBYTE)&sinc, &dwSize);
 	RegCloseKey( hKey);
 	return sinc;
 }
