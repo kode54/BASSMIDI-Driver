@@ -336,6 +336,18 @@ static const char sysex_gm2_reset[]= { 0xF0, 0x7E, 0x7F, 0x09, 0x03, 0xF7 };
 static const char sysex_gs_reset[] = { 0xF0, 0x41, 0x10, 0x42, 0x12, 0x40, 0x00, 0x7F, 0x00, 0x41, 0xF7 };
 static const char sysex_xg_reset[] = { 0xF0, 0x43, 0x10, 0x4C, 0x00, 0x00, 0x7E, 0x00, 0xF7 };
 
+static BOOL is_gs_reset(const unsigned char * data, unsigned size)
+{
+	if ( size != _countof( sysex_gs_reset ) ) return FALSE;
+
+	if ( memcmp( data, sysex_gs_reset, 5 ) != 0 ) return FALSE;
+	if ( memcmp( data + 7, sysex_gs_reset + 7, 2 ) != 0 ) return  FALSE;
+	if ( ( ( data[ 5 ] + data[ 6 ] + 1 ) & 127 ) != data[ 9 ] ) return  FALSE;
+	if ( data[ 10 ] != sysex_gs_reset[ 10 ] ) return  FALSE;
+
+	return TRUE;
+}
+
 int bmsyn_play_some_data(void){
 	UINT uMsg;
 	DWORD	dwParam1;
@@ -450,6 +462,19 @@ void load_settings()
 	BASS_SetConfig(BASS_CONFIG_GVOL_STREAM,config_volume);
 }
 
+int check_sinc()
+{
+	int sinc = 0;
+	HKEY hKey, hSubKey;
+	long lResult;
+	DWORD dwType=REG_DWORD;
+	DWORD dwSize=sizeof(DWORD);
+	lResult = RegOpenKeyEx(HKEY_LOCAL_MACHINE, L"Software\\BASSMIDI Driver", 0, KEY_READ, &hKey);
+	RegQueryValueEx(hKey, L"interpolation", NULL, &dwType,(LPBYTE)&sinc, &dwSize);
+	RegCloseKey( hKey);
+	return sinc;
+}
+
 BOOL load_bassfuncs()
 {
 		TCHAR installpath[1024] = {0};
@@ -519,7 +544,8 @@ unsigned __stdcall threadfunc(LPVOID lpV){
 			BASS_SetConfig(BASS_CONFIG_BUFFER,max(10+info.minbuf,100));
 			BASS_SetConfig(BASS_CONFIG_UPDATEPERIOD, 0);
 			BASS_SetConfig(BASS_CONFIG_UPDATETHREADS, 0);
-			hStream = BASS_MIDI_StreamCreate( 16, IsVistaOrNewer() ? BASS_SAMPLE_FLOAT : 0, 44100 );
+			
+			hStream = BASS_MIDI_StreamCreate( 16, IsVistaOrNewer() ? BASS_SAMPLE_FLOAT : 0 | check_sinc()?BASS_MIDI_SINCINTER: 0, 44100 );
 			load_settings();
 			if (GetWindowsDirectory(config, 1023 - 16))
 			{

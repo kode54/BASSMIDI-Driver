@@ -1,6 +1,6 @@
 /*
 	BASSMIDI 2.4 C/C++ header file
-	Copyright (c) 2006-2011 Un4seen Developments Ltd.
+	Copyright (c) 2006-2012 Un4seen Developments Ltd.
 
 	See the BASSMIDI.CHM file for more detailed documentation
 */
@@ -46,6 +46,11 @@ typedef DWORD HSOUNDFONT;	// soundfont handle
 #define BASS_MIDI_DECAYEND		0x1000
 #define BASS_MIDI_NOFX			0x2000
 #define BASS_MIDI_DECAYSEEK		0x4000
+#define BASS_MIDI_SINCINTER		0x800000
+
+// BASS_MIDI_FontInit flags
+#define BASS_MIDI_FONT_MEM		0x10000
+#define BASS_MIDI_FONT_MMAP		0x20000
 
 typedef struct {
 	HSOUNDFONT font;	// soundfont
@@ -65,7 +70,7 @@ typedef struct {
 
 typedef struct {
 	DWORD track;		// track containing marker
-	DWORD pos;			// marker position (bytes)
+	DWORD pos;			// marker position
 	const char *text;	// marker text
 } BASS_MIDI_MARK;
 
@@ -76,6 +81,7 @@ typedef struct {
 #define BASS_MIDI_MARK_TEXT		3	// text events
 #define BASS_MIDI_MARK_TIMESIG	4	// time signature
 #define BASS_MIDI_MARK_KEYSIG	5	// key signature
+#define BASS_MIDI_MARK_TICK		0x10000 // FLAG: get position in ticks (otherwise bytes)
 
 // MIDI events
 #define MIDI_EVENT_NOTE				1
@@ -135,6 +141,9 @@ typedef struct {
 #define MIDI_EVENT_TRANSPOSE		0x10001
 #define MIDI_EVENT_SYSTEMEX			0x10002
 
+#define MIDI_EVENT_END				0
+#define MIDI_EVENT_END_TRACK		0x10003
+
 #define MIDI_SYSTEM_DEFAULT			0
 #define MIDI_SYSTEM_GM1				1
 #define MIDI_SYSTEM_GM2				2
@@ -162,6 +171,7 @@ typedef struct {
 #define BASS_ATTRIB_MIDI_CPU		0x12001
 #define BASS_ATTRIB_MIDI_CHANS		0x12002
 #define BASS_ATTRIB_MIDI_VOICES		0x12003
+#define BASS_ATTRIB_MIDI_VOICES_ACTIVE 0x12004
 #define BASS_ATTRIB_MIDI_TRACK_VOL	0x12100 // + track #
 
 // Additional tag type
@@ -188,6 +198,7 @@ HSTREAM BASSMIDIDEF(BASS_MIDI_StreamCreate)(DWORD channels, DWORD flags, DWORD f
 HSTREAM BASSMIDIDEF(BASS_MIDI_StreamCreateFile)(BOOL mem, const void *file, QWORD offset, QWORD length, DWORD flags, DWORD freq);
 HSTREAM BASSMIDIDEF(BASS_MIDI_StreamCreateURL)(const char *url, DWORD offset, DWORD flags, DOWNLOADPROC *proc, void *user, DWORD freq);
 HSTREAM BASSMIDIDEF(BASS_MIDI_StreamCreateFileUser)(DWORD system, DWORD flags, const BASS_FILEPROCS *procs, void *user, DWORD freq);
+HSTREAM BASSMIDIDEF(BASS_MIDI_StreamCreateEvents)(const BASS_MIDI_EVENT *events, DWORD ppqn, DWORD flags, DWORD freq);
 BOOL BASSMIDIDEF(BASS_MIDI_StreamGetMark)(HSTREAM handle, DWORD type, DWORD index, BASS_MIDI_MARK *mark);
 BOOL BASSMIDIDEF(BASS_MIDI_StreamSetFonts)(HSTREAM handle, const BASS_MIDI_FONT *fonts, DWORD count);
 DWORD BASSMIDIDEF(BASS_MIDI_StreamGetFonts)(HSTREAM handle, BASS_MIDI_FONT *fonts, DWORD count);
@@ -201,8 +212,10 @@ HSTREAM BASSMIDIDEF(BASS_MIDI_StreamGetChannel)(HSTREAM handle, DWORD chan);
 HSOUNDFONT BASSMIDIDEF(BASS_MIDI_FontInit)(const void *file, DWORD flags);
 BOOL BASSMIDIDEF(BASS_MIDI_FontFree)(HSOUNDFONT handle);
 BOOL BASSMIDIDEF(BASS_MIDI_FontGetInfo)(HSOUNDFONT handle, BASS_MIDI_FONTINFO *info);
+BOOL BASSMIDIDEF(BASS_MIDI_FontGetPresets)(HSOUNDFONT font, DWORD *presets);
 const char *BASSMIDIDEF(BASS_MIDI_FontGetPreset)(HSOUNDFONT handle, int preset, int bank);
 BOOL BASSMIDIDEF(BASS_MIDI_FontLoad)(HSOUNDFONT handle, int preset, int bank);
+BOOL BASSMIDIDEF(BASS_MIDI_FontUnload)(HSOUNDFONT handle, int preset, int bank);
 BOOL BASSMIDIDEF(BASS_MIDI_FontCompact)(HSOUNDFONT handle);
 BOOL BASSMIDIDEF(BASS_MIDI_FontPack)(HSOUNDFONT handle, const void *outfile, const void *encoder, DWORD flags);
 BOOL BASSMIDIDEF(BASS_MIDI_FontUnpack)(HSOUNDFONT handle, const void *outfile, DWORD flags);

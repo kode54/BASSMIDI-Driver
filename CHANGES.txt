@@ -1,3 +1,6 @@
+3.01:
+  driver/config
+  * added sinc interpolation
 3.0:
   driver/installer/config
   * fixed volume setting

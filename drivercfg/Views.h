@@ -201,6 +201,7 @@ class CView2 : public CDialogImpl<CView2>
 	CTrackBarCtrl slider_volume;
 	CButton apply;
 	CButton apply2;
+	CButton sinc_inter;
 
 
 public:
@@ -218,6 +219,7 @@ public:
 	   synthlist = GetDlgItem(IDC_SYNTHLIST);
 	   apply = GetDlgItem(IDC_SNAPPLY);
 	   apply2 = GetDlgItem(IDC_APPLY);
+	   sinc_inter = GetDlgItem(IDC_SINC);
 	   load_settings();
 	   load_midisynths();
 	   return TRUE;
@@ -241,21 +243,26 @@ public:
    {
 		long lResult;
 		DWORD volume;
+		DWORD sinc;
 		CRegKeyEx reg;
 		lResult = reg.Create(HKEY_LOCAL_MACHINE, L"Software\\BASSMIDI Driver");
 		reg.QueryDWORDValue( L"volume",volume);
+		reg.QueryDWORDValue( L"sinc",volume);
 		reg.Close();
 		slider_volume.SetPos(volume);
+		sinc_inter.SetCheck(sinc);
    }
 
    void save_settings()
    {
 	   DWORD volume = slider_volume.GetPos();
+	   DWORD sinc = sinc_inter.GetCheck();
 	   HKEY hKey, hSubKey;
 	   long lResult;
 	   CRegKeyEx reg;
 	   lResult = reg.Create(HKEY_LOCAL_MACHINE, L"Software\\BASSMIDI Driver");
 	   lResult = reg.SetDWORDValue(L"volume",volume);
+	   lResult = reg.SetDWORDValue(L"sinc",sinc);
 
 	   if (lResult == ERROR_SUCCESS)
 	   {
