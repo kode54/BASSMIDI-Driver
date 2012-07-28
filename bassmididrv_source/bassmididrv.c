@@ -414,7 +414,7 @@ int bmsyn_play_some_data(void){
 				BASS_MIDI_StreamEvents( hStream, BASS_MIDI_EVENTS_RAW, sysexbuffer, exlen );
 				if ( ( exlen == _countof( sysex_gm_reset ) && !memcmp( sysexbuffer, sysex_gm_reset, _countof( sysex_gm_reset ) ) ) ||
 					( exlen == _countof( sysex_gm2_reset ) && !memcmp( sysexbuffer, sysex_gm2_reset, _countof( sysex_gm2_reset ) ) ) ||
-					( exlen == _countof( sysex_gs_reset ) && !is_gs_reset( (unsigned char*)sysexbuffer, _countof( sysex_gs_reset ) ) ) ||
+					( exlen == _countof( sysex_gs_reset ) && is_gs_reset( (unsigned char*)sysexbuffer, _countof( sysex_gs_reset ) ) ) ||
 					( exlen == _countof( sysex_xg_reset ) && !memcmp( sysexbuffer, sysex_xg_reset, _countof( sysex_xg_reset ) ) ) ) {
 					ResetDrumChannels();
 					synth_mode = ( exlen == _countof( sysex_xg_reset ) ) ? synth_mode_xg :
