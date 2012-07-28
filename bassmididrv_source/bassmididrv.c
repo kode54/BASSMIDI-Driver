@@ -17,6 +17,7 @@ void _endthreadex( unsigned retval );
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <process.h>
 #include <windows.h>
 #include "mmddk.h"  
 #include <mmsystem.h>
