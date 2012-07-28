@@ -315,7 +315,7 @@ struct evbuf_t{
 	DWORD	dwParam1;
 	DWORD	dwParam2;
 	int exlen;
-	char *sysexbuffer;
+	unsigned char *sysexbuffer;
 };
 #define EVBUFF_SIZE 512
 static struct evbuf_t evbuf[EVBUFF_SIZE];
@@ -331,10 +331,10 @@ int bmsyn_buf_check(void){
 	return retval;
 }
 
-static const char sysex_gm_reset[] = { 0xF0, 0x7E, 0x7F, 0x09, 0x01, 0xF7 };
-static const char sysex_gm2_reset[]= { 0xF0, 0x7E, 0x7F, 0x09, 0x03, 0xF7 };
-static const char sysex_gs_reset[] = { 0xF0, 0x41, 0x10, 0x42, 0x12, 0x40, 0x00, 0x7F, 0x00, 0x41, 0xF7 };
-static const char sysex_xg_reset[] = { 0xF0, 0x43, 0x10, 0x4C, 0x00, 0x00, 0x7E, 0x00, 0xF7 };
+static const unsigned char sysex_gm_reset[] = { 0xF0, 0x7E, 0x7F, 0x09, 0x01, 0xF7 };
+static const unsigned char sysex_gm2_reset[]= { 0xF0, 0x7E, 0x7F, 0x09, 0x03, 0xF7 };
+static const unsigned char sysex_gs_reset[] = { 0xF0, 0x41, 0x10, 0x42, 0x12, 0x40, 0x00, 0x7F, 0x00, 0x41, 0xF7 };
+static const unsigned char sysex_xg_reset[] = { 0xF0, 0x43, 0x10, 0x4C, 0x00, 0x00, 0x7E, 0x00, 0xF7 };
 
 static BOOL is_gs_reset(const unsigned char * data, unsigned size)
 {
@@ -356,7 +356,7 @@ int bmsyn_play_some_data(void){
 	UINT evbpoint;
 	MIDIHDR *IIMidiHdr;
 	int exlen;
-	char *sysexbuffer;
+	unsigned char *sysexbuffer;
 	int played;
 		
 	played=0;
@@ -414,7 +414,7 @@ int bmsyn_play_some_data(void){
 				BASS_MIDI_StreamEvents( hStream, BASS_MIDI_EVENTS_RAW, sysexbuffer, exlen );
 				if ( ( exlen == _countof( sysex_gm_reset ) && !memcmp( sysexbuffer, sysex_gm_reset, _countof( sysex_gm_reset ) ) ) ||
 					( exlen == _countof( sysex_gm2_reset ) && !memcmp( sysexbuffer, sysex_gm2_reset, _countof( sysex_gm2_reset ) ) ) ||
-					( exlen == _countof( sysex_gs_reset ) && is_gs_reset( (unsigned char*)sysexbuffer, _countof( sysex_gs_reset ) ) ) ||
+					( exlen == _countof( sysex_gs_reset ) && is_gs_reset( sysexbuffer, _countof( sysex_gs_reset ) ) ) ||
 					( exlen == _countof( sysex_xg_reset ) && !memcmp( sysexbuffer, sysex_xg_reset, _countof( sysex_xg_reset ) ) ) ) {
 					ResetDrumChannels();
 					synth_mode = ( exlen == _countof( sysex_xg_reset ) ) ? synth_mode_xg :
@@ -423,9 +423,9 @@ int bmsyn_play_some_data(void){
 					                                                       synth_mode_gm2;
 				}
 				else if ( synth_mode == synth_mode_gs && exlen == 11 &&
-					sysexbuffer [0] == (char)0xF0 && sysexbuffer [1] == 0x41 && sysexbuffer [3] == 0x42 &&
+					sysexbuffer [0] == 0xF0 && sysexbuffer [1] == 0x41 && sysexbuffer [3] == 0x42 &&
 					sysexbuffer [4] == 0x12 && sysexbuffer [5] == 0x40 && (sysexbuffer [6] & 0xF0) == 0x10 &&
-					sysexbuffer [10] == (char)0xF7)
+					sysexbuffer [10] == 0xF7)
 				{
 					if (sysexbuffer [7] == 2)
 					{
@@ -639,7 +639,7 @@ void DoStopDriver() {
 void DoResetDriver(DWORD dwParam1, DWORD dwParam2) {
 	UINT evbpoint;
 	int exlen = _countof(sysex_gm_reset);
-	char *sysexbuffer = (char*) malloc(exlen);
+	unsigned char *sysexbuffer = (unsigned char*) malloc(exlen);
 	memcpy(sysexbuffer, sysex_gm_reset, exlen);
 	EnterCriticalSection(&mim_section);
 	evbpoint = evbwpoint;
@@ -721,7 +721,7 @@ STDAPI_(LONG) modMessage(UINT uDeviceID, UINT uMsg, DWORD dwUser, DWORD dwParam1
 	UINT evbpoint;
 	struct Driver *driver = &drivers[uDeviceID];
 	int exlen = 0;
-	char *sysexbuffer = NULL ;
+	unsigned char *sysexbuffer = NULL ;
 	DWORD result = 0;
 	switch (uMsg) {
 	case MODM_OPEN:
@@ -746,7 +746,7 @@ STDAPI_(LONG) modMessage(UINT uDeviceID, UINT uMsg, DWORD dwUser, DWORD dwParam1
 		IIMidiHdr->dwFlags |= MHDR_INQUEUE;
 		IIMidiHdr = (MIDIHDR *) dwParam1;
 		exlen=(int)IIMidiHdr->dwBufferLength;
-		if( NULL == (sysexbuffer = (char *)malloc(exlen * sizeof(char)))){
+		if( NULL == (sysexbuffer = (unsigned char *)malloc(exlen * sizeof(char)))){
 			return MMSYSERR_NOMEM;
 		}else{
 			memcpy(sysexbuffer,IIMidiHdr->lpData,exlen);
