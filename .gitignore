@@ -1,0 +1,17 @@
+/bassmididrv_source/*.opensdf
+/bassmididrv_source/*.sdf
+/bassmididrv_source/*.vcxproj.user
+/bassmididrv_source/*.suo
+/bassmididrv_source/ipch
+/bassmididrv_source/Release
+/bassmididrv_source/Debug
+/bassmididrv_source/out
+/drivercfg/*.opensdf
+/drivercfg/*.sdf
+/drivercfg/*.vcxproj.user
+/drivercfg/*.suo
+/drivercfg/ipch
+/drivercfg/Release
+/drivercfg/Debug
+*.dll
+*.exe
