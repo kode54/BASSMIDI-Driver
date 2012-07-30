@@ -247,7 +247,7 @@ public:
 		CRegKeyEx reg;
 		lResult = reg.Create(HKEY_LOCAL_MACHINE, L"Software\\BASSMIDI Driver");
 		reg.QueryDWORDValue( L"volume",volume);
-		reg.QueryDWORDValue( L"sinc",volume);
+		reg.QueryDWORDValue( L"sinc",sinc);
 		reg.Close();
 		slider_volume.SetPos(volume);
 		sinc_inter.SetCheck(sinc);
