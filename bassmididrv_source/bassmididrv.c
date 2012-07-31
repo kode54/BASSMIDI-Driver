@@ -55,6 +55,7 @@ static volatile int modm_closed = 1;
 
 static CRITICAL_SECTION mim_section;
 static volatile int stop_thread = 0;
+static volatile int reset_synth = 0;
 static HANDLE hCalcThread = NULL;
 static DWORD processPriority;
 static HANDLE load_sfevent = NULL; 
@@ -69,15 +70,6 @@ static HINSTANCE bass = 0;			// bass handle
 static HINSTANCE bassmidi = 0;			// bassmidi handle
 static HINSTANCE hinst = NULL;             //main DLL handle
 
-static const unsigned int synth_mode_gm = 0;
-static const unsigned int synth_mode_gm2 = 1;
-static const unsigned int synth_mode_gs = 2;
-static const unsigned int synth_mode_xg = 3;
-static unsigned int synth_mode = 0;
-
-static BYTE gs_part_to_ch[16];
-static BYTE drum_channels[16];
-
 static void DoStartDriver();
 static void DoStopDriver();
 
@@ -90,26 +82,6 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved ){
 		DoStopDriver();
 	}
 	return TRUE;    
-}
-
-static void ResetDrumChannels()
-{
-	static const BYTE part_to_ch[16] = {9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15};
-
-	unsigned i;
-
-	memset( drum_channels, 0, sizeof( drum_channels ) );
-	drum_channels[ 9 ] = 1;
-
-	memcpy( gs_part_to_ch, part_to_ch, sizeof( gs_part_to_ch ) );
-
-	if ( hStream )
-	{
-		for ( i = 0; i < 16; ++i )
-		{
-			BASS_MIDI_StreamEvent( hStream, i, MIDI_EVENT_DRUMS, drum_channels[ i ] );
-		}
-	}
 }
 
 static void FreeFonts()
@@ -383,23 +355,6 @@ int bmsyn_play_some_data(void){
 				dwParam2 = dwParam1 & 0xF0;
 				exlen = ( dwParam2 == 0xC0 || dwParam2 == 0xD0 ) ? 2 : 3;
 				BASS_MIDI_StreamEvents( hStream, BASS_MIDI_EVENTS_RAW, &dwParam1, exlen );
-				if ( dwParam2 == 0xB0 && ( dwParam1 & 0xFF00 ) == 0 )
-				{
-					if ( synth_mode == synth_mode_xg )
-					{
-						if ( ( dwParam1 & 0xFF0000 ) == 0x7F0000 ) drum_channels[ dwParam1 & 0x0F ] = 1;
-						else drum_channels[ dwParam1 & 0x0F ] = 0;
-					}
-					else if ( synth_mode == synth_mode_gm2 )
-					{
-						if ( ( dwParam1 & 0xFF0000 ) == 0x780000 ) drum_channels[ dwParam1 & 0x0F ] = 1;
-						else if ( ( dwParam1 & 0xFF0000 ) == 0x790000 ) drum_channels[ dwParam1 & 0x0F ] = 0;
-					}
-				}
-				else if ( dwParam2 == 0xC0 )
-				{
-					BASS_MIDI_StreamEvent( hStream, dwParam1 & 0x0F, MIDI_EVENT_DRUMS, drum_channels[ dwParam1 & 0x0F ] );
-				}
 				break;
 			case MODM_LONGDATA:
 #ifdef DEBUG
@@ -413,36 +368,6 @@ int bmsyn_play_some_data(void){
 	fclose(logfile);
 #endif
 				BASS_MIDI_StreamEvents( hStream, BASS_MIDI_EVENTS_RAW, sysexbuffer, exlen );
-				if ( ( exlen == _countof( sysex_gm_reset ) && !memcmp( sysexbuffer, sysex_gm_reset, _countof( sysex_gm_reset ) ) ) ||
-					( exlen == _countof( sysex_gm2_reset ) && !memcmp( sysexbuffer, sysex_gm2_reset, _countof( sysex_gm2_reset ) ) ) ||
-					( exlen == _countof( sysex_gs_reset ) && is_gs_reset( sysexbuffer, _countof( sysex_gs_reset ) ) ) ||
-					( exlen == _countof( sysex_xg_reset ) && !memcmp( sysexbuffer, sysex_xg_reset, _countof( sysex_xg_reset ) ) ) ) {
-					ResetDrumChannels();
-					synth_mode = ( exlen == _countof( sysex_xg_reset ) ) ? synth_mode_xg :
-					             ( exlen == _countof( sysex_gs_reset ) ) ? synth_mode_gs :
-					             ( sysexbuffer [4] == 0x01 )             ? synth_mode_gm :
-					                                                       synth_mode_gm2;
-				}
-				else if ( synth_mode == synth_mode_gs && exlen == 11 &&
-					sysexbuffer [0] == 0xF0 && sysexbuffer [1] == 0x41 && sysexbuffer [3] == 0x42 &&
-					sysexbuffer [4] == 0x12 && sysexbuffer [5] == 0x40 && (sysexbuffer [6] & 0xF0) == 0x10 &&
-					sysexbuffer [10] == 0xF7)
-				{
-					if (sysexbuffer [7] == 2)
-					{
-						// GS MIDI channel to part assign
-						gs_part_to_ch [ sysexbuffer [6] & 15 ] = sysexbuffer [8];
-					}
-					else if ( sysexbuffer [7] == 0x15 )
-					{
-						// GS part to rhythm allocation
-						unsigned int drum_channel = gs_part_to_ch [ sysexbuffer [6] & 15 ];
-						if ( drum_channel < 16 )
-						{
-							drum_channels [ drum_channel ] = sysexbuffer [8];
-						}
-					}
-				}
 				free(sysexbuffer);
 				break;
 			}
@@ -547,6 +472,7 @@ unsigned __stdcall threadfunc(LPVOID lpV){
 			BASS_SetConfig(BASS_CONFIG_UPDATETHREADS, 0);
 			
 			hStream = BASS_MIDI_StreamCreate( 16, IsVistaOrNewer() ? BASS_SAMPLE_FLOAT : 0 | check_sinc()?BASS_MIDI_SINCINTER: 0, 44100 );
+			BASS_MIDI_StreamEvent( hStream, 0, MIDI_EVENT_SYSTEMEX, MIDI_SYSTEM_GM1 );
 			load_settings();
 			if (GetWindowsDirectory(config, 1023 - 16))
 			{
@@ -563,16 +489,19 @@ unsigned __stdcall threadfunc(LPVOID lpV){
 				BASS_MIDI_StreamSetFonts( hStream, mf, font_count );
 				free(mf);
 			}
-			ResetDrumChannels();
-			synth_mode = synth_mode_gm;
 			BASS_ChannelPlay( hStream, FALSE );
 			SetEvent(load_sfevent);
 			opend = 1;
+			reset_synth = 0;
 		}
 	}
 
 	while(stop_thread == 0){
 		Sleep(1);
+		if (reset_synth != 0){
+			reset_synth = 0;
+			BASS_MIDI_StreamEvent( hStream, 0, MIDI_EVENT_SYSTEMEX, MIDI_SYSTEM_GM1 );
+		}
 		bmsyn_play_some_data();
 		BASS_ChannelUpdate( hStream, 1 );
 	}
@@ -638,20 +567,7 @@ void DoStopDriver() {
 }
 
 void DoResetDriver(DWORD dwParam1, DWORD dwParam2) {
-	UINT evbpoint;
-	int exlen = _countof(sysex_gm_reset);
-	unsigned char *sysexbuffer = (unsigned char*) malloc(exlen);
-	memcpy(sysexbuffer, sysex_gm_reset, exlen);
-	EnterCriticalSection(&mim_section);
-	evbpoint = evbwpoint;
-	if (++evbwpoint >= EVBUFF_SIZE)
-		evbwpoint -= EVBUFF_SIZE;
-	evbuf[evbpoint].uMsg = MODM_LONGDATA;
-	evbuf[evbpoint].dwParam1 = dwParam1;
-	evbuf[evbpoint].dwParam2 = dwParam2;
-	evbuf[evbpoint].exlen=exlen;
-	evbuf[evbpoint].sysexbuffer=sysexbuffer;
-	LeaveCriticalSection(&mim_section);
+	reset_synth = 1;
 }
 
 LONG DoOpenDriver(struct Driver *driver, UINT uDeviceID, UINT uMsg, DWORD dwUser, DWORD dwParam1, DWORD dwParam2) {
