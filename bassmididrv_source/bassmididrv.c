@@ -462,7 +462,7 @@ unsigned __stdcall threadfunc(LPVOID lpV){
 	BASS_MIDI_FONT * mf;
 	BASS_INFO info;
 	;
-	while(opend == 0) {
+	while(opend == 0 && stop_thread == 0) {
 		Sleep(100);
 		load_bassfuncs();
 		if ( BASS_Init( -1, 44100, BASS_DEVICE_LATENCY, 0, NULL ) ) {
