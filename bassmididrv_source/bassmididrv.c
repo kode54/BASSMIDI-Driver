@@ -406,8 +406,9 @@ BOOL load_bassfuncs()
 		TCHAR installpath[1024] = {0};
 		TCHAR basspath[1024] = {0};
 		TCHAR bassmidipath[1024] = {0};
-		TCHAR bassflacpath[1024] = {0};
-		TCHAR basswvpath[1024] = {0};
+		TCHAR pluginpath[MAX_PATH] = {0};
+		WIN32_FIND_DATA fd;
+		HANDLE fh;
 		
 		GetModuleFileName(hinst, installpath, 1024);
 		PathRemoveFileSpec(installpath);
@@ -442,12 +443,16 @@ BOOL load_bassfuncs()
 		LOADBASSMIDIFUNCTION(BASS_MIDI_StreamEvents);
 		LOADBASSMIDIFUNCTION(BASS_MIDI_StreamEvent);
 
-		lstrcat(bassflacpath,installpath);
-		lstrcat(bassflacpath,L"\\bassflac.dll");
-		lstrcat(basswvpath,installpath);
-		lstrcat(basswvpath,L"\\basswv.dll");
-		BASS_PluginLoad((const char*)bassflacpath, BASS_UNICODE);
-		BASS_PluginLoad((const char*)basswvpath, BASS_UNICODE);
+		lstrcat(pluginpath,installpath);
+		lstrcat(pluginpath,L"\\bass*.dll");
+		fh=FindFirstFile(pluginpath,&fd);
+		if (fh!=INVALID_HANDLE_VALUE) {
+			do {
+				HPLUGIN plug;
+				plug=BASS_PluginLoad((char*)fd.cFileName,BASS_UNICODE);
+			} while (FindNextFile(fh,&fd));
+			FindClose(fh);
+		}
 
 		return TRUE;
 }

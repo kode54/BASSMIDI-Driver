@@ -170,6 +170,9 @@ public:
 		case 0x10500:
 			listbox.AddItem(0,1,L"WavPack");
 			break;
+		case 0x10a00:
+			listbox.AddItem(0,1,L"Musepack");
+			break;
 		case 0x11200:
 			listbox.AddItem(0,1,L"Opus");
 			break;
