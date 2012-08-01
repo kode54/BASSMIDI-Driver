@@ -406,6 +406,8 @@ BOOL load_bassfuncs()
 		TCHAR installpath[1024] = {0};
 		TCHAR basspath[1024] = {0};
 		TCHAR bassmidipath[1024] = {0};
+		TCHAR bassflacpath[1024] = {0};
+		TCHAR basswvpath[1024] = {0};
 		
 		GetModuleFileName(hinst, installpath, 1024);
 		PathRemoveFileSpec(installpath);
@@ -432,12 +434,21 @@ BOOL load_bassfuncs()
 		LOADBASSFUNCTION(BASS_StreamFree);
 		LOADBASSFUNCTION(BASS_ChannelPlay);
 		LOADBASSFUNCTION(BASS_ChannelUpdate);
+		LOADBASSFUNCTION(BASS_PluginLoad);
 		LOADBASSMIDIFUNCTION(BASS_MIDI_StreamCreate);
 		LOADBASSMIDIFUNCTION(BASS_MIDI_FontInit);
 		LOADBASSMIDIFUNCTION(BASS_MIDI_FontFree);
 		LOADBASSMIDIFUNCTION(BASS_MIDI_StreamSetFonts);
 		LOADBASSMIDIFUNCTION(BASS_MIDI_StreamEvents);
 		LOADBASSMIDIFUNCTION(BASS_MIDI_StreamEvent);
+
+		lstrcat(bassflacpath,installpath);
+		lstrcat(bassflacpath,L"\\bassflac.dll");
+		lstrcat(basswvpath,installpath);
+		lstrcat(basswvpath,L"\\basswv.dll");
+		BASS_PluginLoad((const char*)bassflacpath, BASS_UNICODE);
+		BASS_PluginLoad((const char*)basswvpath, BASS_UNICODE);
+
 		return TRUE;
 }
 

@@ -51,7 +51,7 @@ public:
 	{
 		TCHAR szFileName[MAX_PATH];
 		LPCTSTR sFiles = 
-			L"SoundFonts (*.sf2)\0*.sf2\0"
+			L"SoundFonts (*.sf2;*.sf2pack)\0*.sf2;*.sf2pack\0"
 			L"SoundFont list files (*.sflist)\0*.sflist\0"
 			L"All Files (*.*)\0*.*\0\0";
 	    CFileDialog dlg( TRUE, NULL, NULL, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT, sFiles);
@@ -61,7 +61,7 @@ public:
 			lstrcpy(szFileName,dlg.m_szFileName);
 			const TCHAR * ext = _tcsrchr( szFileName, _T('.') );
 			if ( ext ) ext++;
-			if ( !_tcsicmp( ext, _T("sf2")))
+			if ( !_tcsicmp( ext, _T("sf2")) || !_tcsicmp( ext, _T("sf2pack")) )
 			{
 				listbox.AddString(szFileName);
 			}
