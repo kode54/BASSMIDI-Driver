@@ -118,6 +118,50 @@ public:
 		return TRUE;
 	}
 
+	void add_fileentry(TCHAR* szFileName)
+	{
+		BASS_MIDI_FONTINFO info;
+		HSOUNDFONT sf2 = BASS_MIDI_FontInit(szFileName,BASS_UNICODE);
+		BASS_MIDI_FontGetInfo(sf2,&info);
+		wstring utf8 = utf16_from_utf8(info.name);
+		listbox.AddItem(0,0,utf8.c_str());
+		switch (info.samtype)
+		{
+		case -1:
+			listbox.AddItem(0,1,L"Unknown");
+			break;
+		case 0:
+			listbox.AddItem(0,1,L"None");
+			break;
+		case 0x10002:
+			listbox.AddItem(0,1,L"Vorbis");
+			break;
+		case 0x10003:
+			listbox.AddItem(0,1,L"MP1");
+			break;
+		case 0x10004:
+			listbox.AddItem(0,1,L"MP2");
+			break;
+		case 0x10005:
+			listbox.AddItem(0,1,L"MP3");
+			break;
+		case 0x10900:
+			listbox.AddItem(0,1,L"FLAC");
+			break;
+		case 0x10901:
+			listbox.AddItem(0,1,L"OggFLAC");
+			break;
+		case 0x10500:
+			listbox.AddItem(0,1,L"WavPack");
+			break;
+		case 0x11200:
+			listbox.AddItem(0,1,L"Opus");
+			break;
+		}
+		listbox.AddItem(0,2,szFileName);
+		BASS_MIDI_FontFree(sf2);
+	}
+
 	LRESULT OnButtonAdd(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/ )
 	{
 		TCHAR szFileName[MAX_PATH];
@@ -134,46 +178,7 @@ public:
 			if ( ext ) ext++;
 			if ( !_tcsicmp( ext, _T("sf2")) || !_tcsicmp( ext, _T("sf2pack")) )
 			{
-				BASS_MIDI_FONTINFO info;
-				HSOUNDFONT sf2 = BASS_MIDI_FontInit(szFileName,BASS_UNICODE);
-				BASS_MIDI_FontGetInfo(sf2,&info);
-				wstring utf8 = utf16_from_utf8(info.name);
-				listbox.AddItem(0,0,utf8.c_str());
-				switch (info.samtype)
-				{
-				case -1:
-					listbox.AddItem(0,1,L"Unknown");
-					break;
-				case 0:
-					listbox.AddItem(0,1,L"None");
-					break;
-				case 0x10002:
-					listbox.AddItem(0,1,L"Vorbis");
-					break;
-				case 0x10003:
-					listbox.AddItem(0,1,L"MP1");
-					break;
-				case 0x10004:
-					listbox.AddItem(0,1,L"MP2");
-					break;
-				case 0x10005:
-					listbox.AddItem(0,1,L"MP3");
-					break;
-				case 0x10900:
-					listbox.AddItem(0,1,L"FLAC");
-					break;
-				case 0x10901:
-					listbox.AddItem(0,1,L"OggFLAC");
-					break;
-				case 0x10500:
-					listbox.AddItem(0,1,L"WavPack");
-					break;
-				case 0x11200:
-					listbox.AddItem(0,1,L"Opus");
-					break;
-				}
-				listbox.AddItem(0,2,szFileName);
-				BASS_MIDI_FontFree(sf2);
+				add_fileentry(szFileName);
 			}
 			else if ( !_tcsicmp( ext, _T("sflist") ))
 			{
@@ -269,47 +274,7 @@ public:
 					   cr = temp;
 				   }
 				   font_count++;
-				   BASS_MIDI_FONTINFO info;
-				   HSOUNDFONT sf2 = BASS_MIDI_FontInit(cr,BASS_UNICODE);
-				   BASS_MIDI_FontGetInfo(sf2,&info);
-				   wstring utf8 = utf16_from_utf8(info.name);
-				   listbox.AddItem(0,0,utf8.c_str());
-
-				   switch (info.samtype)
-				   {
-				   case -1:
-					   listbox.AddItem(0,1,L"Unknown");
-					   break;
-				   case 0:
-					   listbox.AddItem(0,1,L"None");
-					   break;
-				   case 0x10002:
-					   listbox.AddItem(0,1,L"Vorbis");
-					   break;
-				   case 0x10003:
-					   listbox.AddItem(0,1,L"MP1");
-					   break;
-				   case 0x10004:
-					   listbox.AddItem(0,1,L"MP2");
-					   break;
-				   case 0x10005:
-					   listbox.AddItem(0,1,L"MP3");
-					   break;
-				   case 0x10900:
-					   listbox.AddItem(0,1,L"FLAC");
-					   break;
-				   case 0x10901:
-					   listbox.AddItem(0,1,L"OggFLAC");
-					   break;
-				   case 0x10500:
-					   listbox.AddItem(0,1,L"WavPack");
-					   break;
-				   case 0x11200:
-					   listbox.AddItem(0,1,L"Opus");
-					   break;
-				   }
-				   listbox.AddItem(0,2,cr);
-				   BASS_MIDI_FontFree(sf2);
+				   add_fileentry(cr);
 			   }
 			   fclose( fl );
 		   }
