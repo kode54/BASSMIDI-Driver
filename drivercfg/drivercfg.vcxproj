@@ -129,6 +129,11 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\bass.h" />
+    <ClInclude Include="..\bassflac.h" />
+    <ClInclude Include="..\bassmidi.h" />
+    <ClInclude Include="..\bassopus.h" />
+    <ClInclude Include="..\basswv.h" />
     <ClInclude Include="AboutDlg.h" />
     <ClInclude Include="DlgTabCtrl.h" />
     <ClInclude Include="MainDlg.h" />

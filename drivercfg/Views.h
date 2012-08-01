@@ -14,6 +14,9 @@
 #define LOADBASSMIDIFUNCTION(f) *((void**)&f)=GetProcAddress(bassmidi,#f)
 #include "../bass.h"
 #include "../bassmidi.h"
+#include "../bassopus.h"
+#include "../bassflac.h"
+#include "../basswv.h"
 
 using namespace std;
 using namespace utf8util;
@@ -85,7 +88,7 @@ public:
 
 
 		listbox.AddColumn(L"SoundFont Name",0);
-		listbox.AddColumn(L"Packed",1);
+		listbox.AddColumn(L"Compression",1);
 		listbox.AddColumn(L"SoundFont Filename",2);
 		
 
@@ -123,6 +126,35 @@ public:
 				BASS_MIDI_FontGetInfo(sf2,&info);
 				wstring utf8 = utf16_from_utf8(info.name);
 				listbox.AddItem(0,0,utf8.c_str());
+				switch (info.samtype)
+				{
+				case -1:
+					listbox.AddItem(0,1,L"Unknown");
+				case 0:
+					listbox.AddItem(0,1,L"None");
+					break;
+				case BASS_CTYPE_STREAM_OGG:
+					listbox.AddItem(0,1,L"Vorbis");
+					break;
+				case BASS_CTYPE_STREAM_MP1:
+					listbox.AddItem(0,1,L"MP1");
+					break;
+				case BASS_CTYPE_STREAM_MP2:
+					listbox.AddItem(0,1,L"MP2");
+					break;
+				case BASS_CTYPE_STREAM_MP3:
+					listbox.AddItem(0,1,L"MP3");
+					break;
+				case BASS_CTYPE_STREAM_FLAC:
+					listbox.AddItem(0,1,L"FLAC");
+					break;
+				case BASS_CTYPE_STREAM_WV:
+					listbox.AddItem(0,1,L"WavPack");
+					break;
+				case BASS_CTYPE_STREAM_OPUS:
+					listbox.AddItem(0,1,L"Opus");
+					break;
+				}
 				listbox.AddItem(0,2,szFileName);
 				BASS_MIDI_FontFree(sf2);
 			}
@@ -146,18 +178,15 @@ public:
 
 	LRESULT OnButtonDown( WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/ )
 	{
-		TCHAR SelectedItemFileName[MAX_PATH];
-		TCHAR SelectedItemName[MAX_PATH];
+		TCHAR items[3][MAX_PATH];
 		int amount_items = listbox.GetItemCount();
 		amount_items--;
 		int selectedindex = listbox.GetSelectionMark();
 		if (selectedindex != amount_items && selectedindex != -1)
 		{
-			listbox.GetItemText(selectedindex,2,SelectedItemFileName,sizeof(SelectedItemFileName));
-			listbox.GetItemText(selectedindex,0,SelectedItemName,sizeof(SelectedItemName));
+			for (int i=0;i<3;i++)listbox.GetItemText(selectedindex,i,items[i],MAX_PATH);
 			listbox.DeleteItem(selectedindex);
-			listbox.AddItem(selectedindex+1,0,SelectedItemName);
-			listbox.AddItem(selectedindex+1,2,SelectedItemFileName);
+			for (int i=0;i<3;i++) listbox.AddItem(selectedindex+1,i,items[i],MAX_PATH);
 			listbox.SetSelectionMark(selectedindex+1);
 		}
 		return 0;
@@ -167,16 +196,13 @@ public:
 	LRESULT OnButtonUp( WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/ )
 	{
 		int amount_items = listbox.GetItemCount();
-		TCHAR SelectedItemFileName[MAX_PATH];
-		TCHAR SelectedItemName[MAX_PATH];
+		TCHAR items[3][MAX_PATH];
 		int selectedindex = listbox.GetSelectionMark();
 		if (selectedindex != 0)
 		{
-			listbox.GetItemText(selectedindex,0,SelectedItemName,sizeof(SelectedItemName));
-			listbox.GetItemText(selectedindex,2,SelectedItemFileName,sizeof(SelectedItemFileName));
+			for (int i=0;i<3;i++)listbox.GetItemText(selectedindex,i,items[i],MAX_PATH);
 			listbox.DeleteItem(selectedindex);
-			listbox.AddItem(selectedindex-1,0,SelectedItemName);
-			listbox.AddItem(selectedindex-1,2,SelectedItemFileName);
+			for (int i=0;i<3;i++) listbox.AddItem(selectedindex-1,i,items[i],MAX_PATH);
 			listbox.SetSelectionMark(selectedindex-1);
 		}
 		return 0;
@@ -192,6 +218,7 @@ public:
 
    void read_sflist(TCHAR * sfpath)
    {
+	   char* ctypes = "None";
 	   int font_count;
 	   listbox.DeleteAllItems();
 	   if (sfpath && *sfpath)
@@ -230,6 +257,33 @@ public:
 				   BASS_MIDI_FontGetInfo(sf2,&info);
 				   wstring utf8 = utf16_from_utf8(info.name);
 				   listbox.AddItem(0,0,utf8.c_str());
+
+				   switch (info.samtype)
+				   {
+				   case -1:
+					   listbox.AddItem(0,1,L"Unknown");
+				   case 0:
+                     listbox.AddItem(0,1,L"None");
+				   	break;
+				   case BASS_CTYPE_STREAM_OGG:
+					   listbox.AddItem(0,1,L"Vorbis");
+					   break;
+				   case BASS_CTYPE_STREAM_MP1:
+					   listbox.AddItem(0,1,L"MP1");
+					   break;
+				   case BASS_CTYPE_STREAM_MP2:
+					   listbox.AddItem(0,1,L"MP2");
+					   break;
+				   case BASS_CTYPE_STREAM_MP3:
+					   listbox.AddItem(0,1,L"MP3");
+					   break;
+				   case BASS_CTYPE_STREAM_FLAC:
+					    listbox.AddItem(0,1,L"FLAC");
+					   break;
+				   case BASS_CTYPE_STREAM_WV:
+					    listbox.AddItem(0,1,L"WavPack");
+						break;
+				   }
 				   listbox.AddItem(0,2,cr);
 				   BASS_MIDI_FontFree(sf2);
 			   }

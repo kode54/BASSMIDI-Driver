@@ -1,3 +1,6 @@
+3.1:
+  driver/config
+  * added support for sf2pack files(soundfonts with lossy/lossless compressed samples)
 3.01:
   driver/config
   * added sinc interpolation
