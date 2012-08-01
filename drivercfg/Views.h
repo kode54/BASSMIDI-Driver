@@ -146,15 +146,18 @@ public:
 
 	LRESULT OnButtonDown( WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/ )
 	{
-		TCHAR SelectedItem[MAX_PATH];
+		TCHAR SelectedItemFileName[MAX_PATH];
+		TCHAR SelectedItemName[MAX_PATH];
 		int amount_items = listbox.GetItemCount();
 		amount_items--;
 		int selectedindex = listbox.GetSelectionMark();
 		if (selectedindex != amount_items && selectedindex != -1)
 		{
-			listbox.GetItemText(selectedindex,2,SelectedItem,sizeof(SelectedItem));
+			listbox.GetItemText(selectedindex,2,SelectedItemFileName,sizeof(SelectedItemFileName));
+			listbox.GetItemText(selectedindex,0,SelectedItemName,sizeof(SelectedItemName));
 			listbox.DeleteItem(selectedindex);
-			listbox.InsertItem(selectedindex,SelectedItem);
+			listbox.AddItem(selectedindex+1,0,SelectedItemName);
+			listbox.AddItem(selectedindex+1,2,SelectedItemFileName);
 			listbox.SetSelectionMark(selectedindex+1);
 		}
 		return 0;
@@ -164,13 +167,16 @@ public:
 	LRESULT OnButtonUp( WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/ )
 	{
 		int amount_items = listbox.GetItemCount();
-		TCHAR SelectedItem[MAX_PATH];
+		TCHAR SelectedItemFileName[MAX_PATH];
+		TCHAR SelectedItemName[MAX_PATH];
 		int selectedindex = listbox.GetSelectionMark();
 		if (selectedindex != 0)
 		{
-			listbox.GetItemText(selectedindex,2,SelectedItem,sizeof(SelectedItem));
+			listbox.GetItemText(selectedindex,0,SelectedItemName,sizeof(SelectedItemName));
+			listbox.GetItemText(selectedindex,2,SelectedItemFileName,sizeof(SelectedItemFileName));
 			listbox.DeleteItem(selectedindex);
-			listbox.InsertItem(selectedindex-1,SelectedItem);
+			listbox.AddItem(selectedindex-1,0,SelectedItemName);
+			listbox.AddItem(selectedindex-1,2,SelectedItemFileName);
 			listbox.SetSelectionMark(selectedindex-1);
 		}
 		return 0;
