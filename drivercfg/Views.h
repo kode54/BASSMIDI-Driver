@@ -93,11 +93,14 @@ public:
 		TCHAR pluginpath[MAX_PATH] = {0};
 		lstrcat(pluginpath,installpath);
 		lstrcat(pluginpath,L"\\bass*.dll");
+		int installpathlength=lstrlen(installpath)+1;
 		fh=FindFirstFile(pluginpath,&fd);
 		if (fh!=INVALID_HANDLE_VALUE) {
 			do {
 				HPLUGIN plug;
-				plug=BASS_PluginLoad((char*)fd.cFileName,BASS_UNICODE);
+				pluginpath[installpathlength]=0;
+				lstrcat(pluginpath,fd.cFileName);
+				plug=BASS_PluginLoad((char*)pluginpath,BASS_UNICODE);
 			} while (FindNextFile(fh,&fd));
 			FindClose(fh);
 		}
