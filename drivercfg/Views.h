@@ -14,9 +14,6 @@
 #define LOADBASSMIDIFUNCTION(f) *((void**)&f)=GetProcAddress(bassmidi,#f)
 #include "../bass.h"
 #include "../bassmidi.h"
-#include "../bassopus.h"
-#include "../bassflac.h"
-#include "../basswv.h"
 
 using namespace std;
 using namespace utf8util;
@@ -71,7 +68,6 @@ public:
 		/* "load" all the BASS functions that are to be used */
 		OutputDebugString(L"Loading BASS functions....");
 	
-
 		LOADBASSFUNCTION(BASS_ErrorGetCode);
 		LOADBASSFUNCTION(BASS_SetConfig);
 		LOADBASSFUNCTION(BASS_Init);
@@ -79,6 +75,7 @@ public:
 		LOADBASSFUNCTION(BASS_GetInfo);
 		LOADBASSFUNCTION(BASS_StreamFree);
 		LOADBASSFUNCTION(BASS_PluginLoad);
+		LOADBASSFUNCTION(BASS_PluginGetInfo);
 		LOADBASSMIDIFUNCTION(BASS_MIDI_FontInit);
 		LOADBASSMIDIFUNCTION(BASS_MIDI_FontLoad);
 		LOADBASSMIDIFUNCTION(BASS_MIDI_FontGetInfo);
@@ -86,6 +83,22 @@ public:
 		LOADBASSMIDIFUNCTION(BASS_MIDI_FontUnpack);
 		LOADBASSMIDIFUNCTION(BASS_MIDI_FontFree);
 
+		BASS_Init(0,44100,0,0,NULL);
+		BASS_SetConfig(BASS_CONFIG_UPDATEPERIOD,0);
+
+		WIN32_FIND_DATA fd;
+		HANDLE fh;
+		TCHAR pluginpath[MAX_PATH] = {0};
+		lstrcat(pluginpath,installpath);
+		lstrcat(pluginpath,L"\\bass*.dll");
+		fh=FindFirstFile(pluginpath,&fd);
+		if (fh!=INVALID_HANDLE_VALUE) {
+			do {
+				HPLUGIN plug;
+				plug=BASS_PluginLoad((char*)fd.cFileName,BASS_UNICODE);
+			} while (FindNextFile(fh,&fd));
+			FindClose(fh);
+		}
 
 		listbox.AddColumn(L"SoundFont Name",0);
 		listbox.AddColumn(L"Compression",1);
@@ -130,28 +143,32 @@ public:
 				{
 				case -1:
 					listbox.AddItem(0,1,L"Unknown");
+					break;
 				case 0:
 					listbox.AddItem(0,1,L"None");
 					break;
-				case BASS_CTYPE_STREAM_OGG:
+				case 0x10002:
 					listbox.AddItem(0,1,L"Vorbis");
 					break;
-				case BASS_CTYPE_STREAM_MP1:
+				case 0x10003:
 					listbox.AddItem(0,1,L"MP1");
 					break;
-				case BASS_CTYPE_STREAM_MP2:
+				case 0x10004:
 					listbox.AddItem(0,1,L"MP2");
 					break;
-				case BASS_CTYPE_STREAM_MP3:
+				case 0x10005:
 					listbox.AddItem(0,1,L"MP3");
 					break;
-				case BASS_CTYPE_STREAM_FLAC:
+				case 0x10900:
 					listbox.AddItem(0,1,L"FLAC");
 					break;
-				case BASS_CTYPE_STREAM_WV:
+				case 0x10901:
+					listbox.AddItem(0,1,L"OggFLAC");
+					break;
+				case 0x10500:
 					listbox.AddItem(0,1,L"WavPack");
 					break;
-				case BASS_CTYPE_STREAM_OPUS:
+				case 0x11200:
 					listbox.AddItem(0,1,L"Opus");
 					break;
 				}
@@ -262,27 +279,34 @@ public:
 				   {
 				   case -1:
 					   listbox.AddItem(0,1,L"Unknown");
+					   break;
 				   case 0:
-                     listbox.AddItem(0,1,L"None");
-				   	break;
-				   case BASS_CTYPE_STREAM_OGG:
+					   listbox.AddItem(0,1,L"None");
+					   break;
+				   case 0x10002:
 					   listbox.AddItem(0,1,L"Vorbis");
 					   break;
-				   case BASS_CTYPE_STREAM_MP1:
+				   case 0x10003:
 					   listbox.AddItem(0,1,L"MP1");
 					   break;
-				   case BASS_CTYPE_STREAM_MP2:
+				   case 0x10004:
 					   listbox.AddItem(0,1,L"MP2");
 					   break;
-				   case BASS_CTYPE_STREAM_MP3:
+				   case 0x10005:
 					   listbox.AddItem(0,1,L"MP3");
 					   break;
-				   case BASS_CTYPE_STREAM_FLAC:
-					    listbox.AddItem(0,1,L"FLAC");
+				   case 0x10900:
+					   listbox.AddItem(0,1,L"FLAC");
 					   break;
-				   case BASS_CTYPE_STREAM_WV:
-					    listbox.AddItem(0,1,L"WavPack");
-						break;
+				   case 0x10901:
+					   listbox.AddItem(0,1,L"OggFLAC");
+					   break;
+				   case 0x10500:
+					   listbox.AddItem(0,1,L"WavPack");
+					   break;
+				   case 0x11200:
+					   listbox.AddItem(0,1,L"Opus");
+					   break;
 				   }
 				   listbox.AddItem(0,2,cr);
 				   BASS_MIDI_FontFree(sf2);
