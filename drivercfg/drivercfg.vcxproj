@@ -63,6 +63,7 @@
       <TargetMachine>MachineX86</TargetMachine>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <OutputFile>..\bassmididrvcfg.exe</OutputFile>
     </Link>
     <ResourceCompile>
       <Culture>0x0409</Culture>
@@ -97,9 +98,10 @@
       <SubSystem>Windows</SubSystem>
       <TargetMachine>MachineX86</TargetMachine>
       <AdditionalDependencies>winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
       <UACExecutionLevel>RequireAdministrator</UACExecutionLevel>
       <AllowIsolation>true</AllowIsolation>
+      <OutputFile>..\bassmididrvcfg.exe</OutputFile>
     </Link>
     <ResourceCompile>
       <Culture>0x0409</Culture>

@@ -5,6 +5,16 @@
 #include <fstream> 
 
 #include "utf8conv.h"
+
+
+
+#define BASSDEF(f) (WINAPI *f)	// define the BASS/BASSMIDI functions as pointers
+#define BASSMIDIDEF(f) (WINAPI *f)
+#define LOADBASSFUNCTION(f) *((void**)&f)=GetProcAddress(bass,#f)
+#define LOADBASSMIDIFUNCTION(f) *((void**)&f)=GetProcAddress(bassmidi,#f)
+#include "../bass.h"
+#include "../bassmidi.h"
+
 using namespace std;
 using namespace utf8util;
 #if _MSC_VER > 1000
@@ -12,8 +22,9 @@ using namespace utf8util;
 #endif // _MSC_VER > 1000
 class CView1 : public CDialogImpl<CView1>
 {
-	CListBox listbox;
+	CListViewCtrl listbox;
 	CButton addsf,removesf, upsf,downsf,applysf;
+	HMODULE bass, bassmidi;
 public:
    enum { IDD = IDD_MAIN };
    BEGIN_MSG_MAP(CView1)
@@ -33,6 +44,50 @@ public:
 		upsf = GetDlgItem(IDC_UPSF);
 		downsf = GetDlgItem(IDC_DOWNSF);
 		applysf = GetDlgItem(IDC_SFAPPLY);
+
+		
+		TCHAR installpath[1024] = {0};
+		TCHAR basspath[1024] = {0};
+		TCHAR bassmidipath[1024] = {0};
+		TCHAR bassflacpath[1024] = {0};
+		TCHAR basswvpath[1024] = {0};
+		GetModuleFileName(GetModuleHandle(0), installpath, 1024);
+		PathRemoveFileSpec(installpath);
+		lstrcat(basspath,installpath);
+		lstrcat(basspath,L"\\bass.dll");
+		if (!(bass=LoadLibrary(basspath))) {
+			OutputDebugString(L"Failed to load BASS DLL!");
+			return FALSE;
+		}
+		lstrcat(bassmidipath,installpath);
+		lstrcat(bassmidipath,L"\\bassmidi.dll");
+		if (!(bassmidi=LoadLibrary(bassmidipath))) {
+			OutputDebugString(L"Failed to load BASSMIDI DLL!");
+			return FALSE;
+		}
+		/* "load" all the BASS functions that are to be used */
+		OutputDebugString(L"Loading BASS functions....");
+	
+
+		LOADBASSFUNCTION(BASS_ErrorGetCode);
+		LOADBASSFUNCTION(BASS_SetConfig);
+		LOADBASSFUNCTION(BASS_Init);
+		LOADBASSFUNCTION(BASS_Free);
+		LOADBASSFUNCTION(BASS_GetInfo);
+		LOADBASSFUNCTION(BASS_StreamFree);
+		LOADBASSFUNCTION(BASS_PluginLoad);
+		LOADBASSMIDIFUNCTION(BASS_MIDI_FontInit);
+		LOADBASSMIDIFUNCTION(BASS_MIDI_FontLoad);
+		LOADBASSMIDIFUNCTION(BASS_MIDI_FontGetInfo);
+		LOADBASSMIDIFUNCTION(BASS_MIDI_FontPack);
+		LOADBASSMIDIFUNCTION(BASS_MIDI_FontUnpack);
+		LOADBASSMIDIFUNCTION(BASS_MIDI_FontFree);
+
+
+		listbox.AddColumn(L"SoundFont Name",0);
+		listbox.AddColumn(L"Packed",1);
+		listbox.AddColumn(L"SoundFont Filename",2);
+		
 
 		TCHAR sfpath[MAX_PATH];
 		if(SUCCEEDED(SHGetFolderPath(NULL, 
@@ -63,7 +118,13 @@ public:
 			if ( ext ) ext++;
 			if ( !_tcsicmp( ext, _T("sf2")) || !_tcsicmp( ext, _T("sf2pack")) )
 			{
-				listbox.AddString(szFileName);
+				BASS_MIDI_FONTINFO info;
+				HSOUNDFONT sf2 = BASS_MIDI_FontInit(szFileName,BASS_UNICODE);
+				BASS_MIDI_FontGetInfo(sf2,&info);
+				wstring utf8 = utf16_from_utf8(info.name);
+				listbox.AddItem(0,0,utf8.c_str());
+				listbox.AddItem(0,2,szFileName);
+				BASS_MIDI_FontFree(sf2);
 			}
 			else if ( !_tcsicmp( ext, _T("sflist") ))
 			{
@@ -77,8 +138,8 @@ public:
 
 	LRESULT OnButtonRemove( WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/ )
 	{
-		int selectedindex = listbox.GetCurSel();
-		listbox.DeleteString(selectedindex);
+		int selectedindex = listbox.GetSelectionMark();
+		listbox.DeleteItem(selectedindex);
 		return 0;
 
 	}
@@ -86,15 +147,15 @@ public:
 	LRESULT OnButtonDown( WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/ )
 	{
 		TCHAR SelectedItem[MAX_PATH];
-		int amount_items = listbox.GetCount();
+		int amount_items = listbox.GetItemCount();
 		amount_items--;
-		int selectedindex = listbox.GetCurSel();
+		int selectedindex = listbox.GetSelectionMark();
 		if (selectedindex != amount_items && selectedindex != -1)
 		{
-			listbox.GetText(selectedindex,SelectedItem);
-			listbox.DeleteString(selectedindex);
-			listbox.InsertString(selectedindex+1,SelectedItem);
-			listbox.SetCurSel(selectedindex+1);
+			listbox.GetItemText(selectedindex,2,SelectedItem,sizeof(SelectedItem));
+			listbox.DeleteItem(selectedindex);
+			listbox.InsertItem(selectedindex,SelectedItem);
+			listbox.SetSelectionMark(selectedindex+1);
 		}
 		return 0;
 
@@ -102,15 +163,15 @@ public:
 
 	LRESULT OnButtonUp( WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/ )
 	{
-		int amount_items = listbox.GetCount();
+		int amount_items = listbox.GetItemCount();
 		TCHAR SelectedItem[MAX_PATH];
-		int selectedindex = listbox.GetCurSel();
+		int selectedindex = listbox.GetSelectionMark();
 		if (selectedindex != 0)
 		{
-			listbox.GetText(selectedindex,SelectedItem);
-			listbox.DeleteString(selectedindex);
-			listbox.InsertString(selectedindex-1,SelectedItem);
-			listbox.SetCurSel(selectedindex-1);
+			listbox.GetItemText(selectedindex,2,SelectedItem,sizeof(SelectedItem));
+			listbox.DeleteItem(selectedindex);
+			listbox.InsertItem(selectedindex-1,SelectedItem);
+			listbox.SetSelectionMark(selectedindex-1);
 		}
 		return 0;
 
@@ -126,7 +187,7 @@ public:
    void read_sflist(TCHAR * sfpath)
    {
 	   int font_count;
-	   listbox.ResetContent();
+	   listbox.DeleteAllItems();
 	   if (sfpath && *sfpath)
 	   {
 		   FILE * fl = _tfopen( sfpath,L"r, ccs=UTF-8" );
@@ -141,6 +202,7 @@ public:
 			   path[ filename - sfpath ] = 0;
 			   while ( !feof( fl ))
 			   {
+				   
 				   TCHAR * cr;
 				   if( !_fgetts( fontname, 1024, fl ) ) break;
 				   fontname[1023] = 0;
@@ -157,7 +219,13 @@ public:
 					   cr = temp;
 				   }
 				   font_count++;
-				  listbox.AddString(cr);
+				   BASS_MIDI_FONTINFO info;
+				   HSOUNDFONT sf2 = BASS_MIDI_FontInit(cr,BASS_UNICODE);
+				   BASS_MIDI_FontGetInfo(sf2,&info);
+				   wstring utf8 = utf16_from_utf8(info.name);
+				   listbox.AddItem(0,0,utf8.c_str());
+				   listbox.AddItem(0,2,cr);
+				   BASS_MIDI_FontFree(sf2);
 			   }
 			   fclose( fl );
 		   }
@@ -166,7 +234,7 @@ public:
 
    void write_sflist()
    {
-	   int file_count = listbox.GetCount();
+	   int file_count = listbox.GetItemCount();
 	   TCHAR file_name[MAX_PATH];
 	   ZeroMemory(file_name,sizeof(file_name));
 	   TCHAR sfpath[MAX_PATH];
@@ -183,7 +251,7 @@ public:
 	   out.open(sfpath);
 	   for (int i=0;i<file_count;++i)
 	   {
-		   listbox.GetText(i,file_name);
+		   listbox.GetItemText(i,2,file_name,sizeof(file_name));
 		   string utf8 = utf8_from_utf16(file_name);
 		   out << utf8 << "\n";
 	   }
