@@ -20,7 +20,7 @@ using namespace utf8util;
 #if _MSC_VER > 1000
 #pragma once
 #endif // _MSC_VER > 1000
-class CView1 : public CDialogImpl<CView1>
+class CView1 : public CDialogImpl<CView1>, public CDropFileTarget<CView1>
 {
 	CListViewCtrl listbox;
 	CButton addsf,removesf, upsf,downsf,applysf;
@@ -34,6 +34,7 @@ public:
 	   COMMAND_ID_HANDLER(IDC_DOWNSF,OnButtonDown)
 	   COMMAND_ID_HANDLER(IDC_UPSF,OnButtonUp)
 	   COMMAND_ID_HANDLER(IDC_SFAPPLY,OnButtonApply)
+	   CHAIN_MSG_MAP(CDropFileTarget<CView1>)
    END_MSG_MAP()
 
 	LRESULT OnInitDialogView1(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
@@ -45,6 +46,7 @@ public:
 		downsf = GetDlgItem(IDC_DOWNSF);
 		applysf = GetDlgItem(IDC_SFAPPLY);
 
+		RegisterDropTarget();
 		
 		TCHAR installpath[1024] = {0};
 		TCHAR basspath[1024] = {0};
@@ -116,6 +118,20 @@ public:
 			read_sflist(sfpath);
 		}
 		return TRUE;
+	}
+
+	void ProcessFile(LPCTSTR lpszPath)
+	{
+		const TCHAR * ext = _tcsrchr( lpszPath, _T('.') );
+		if ( ext ) ext++;
+		if ( !_tcsicmp( ext, _T("sf2")) || !_tcsicmp( ext, _T("sf2pack")) )
+		{
+			add_fileentry((TCHAR*)lpszPath);
+		}
+		else if ( !_tcsicmp( ext, _T("sflist") ))
+		{
+			read_sflist((TCHAR*)lpszPath);
+		}
 	}
 
 	void add_fileentry(TCHAR* szFileName)

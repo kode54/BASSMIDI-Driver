@@ -7,6 +7,7 @@
 #include <atlwin.h>
 #include "resource.h"
 #include "DlgTabCtrl.h"
+#include "DropFileTarget.h"
 #include "Views.h"
 
 
