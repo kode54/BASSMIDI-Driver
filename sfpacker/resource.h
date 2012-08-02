@@ -21,6 +21,10 @@
 #define IDC_COMPRESSION                 1004
 #define IDC_NEWGUID                     1005
 #define IDC_COMPSTR                     1005
+#define IDC_PATH                        1006
+#define IDC_BROWSE                      1007
+#define IDC_BUTTON2                     1008
+#define IDC_APPLY                       1008
 #define IDP_ERR_CREATE_GUID             2000
 #define IDP_ERR_OPEN_CLIP               2001
 #define IDS_ABOUTBOX                    2002
@@ -31,7 +35,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        201
 #define _APS_NEXT_COMMAND_VALUE         32772
-#define _APS_NEXT_CONTROL_VALUE         1006
+#define _APS_NEXT_CONTROL_VALUE         1009
 #define _APS_NEXT_SYMED_VALUE           102
 #endif
 #endif

@@ -25,6 +25,7 @@
 using namespace std;
 using namespace utf8util;
 
+
 const TCHAR* pack_descr[] = 
 { 
   L"FLAC", 
@@ -50,19 +51,25 @@ const TCHAR* pack_cmdline[] =
   L"oggenc2 -q 3 -"
 };
 
+#define BUFSIZE 4096
+
 class CMainDlg : public CDialogImpl<CMainDlg>, public CDropFileTarget<CMainDlg>, public CMessageFilter
 {
 	HMODULE bass, bassmidi;
 	CComboBox compress_type;
-	CStatic   compress_str, filename;
+	CStatic   compress_str, filename, directoryname;
 	CButton  pack_sf;
+	TCHAR original_pathvar[BUFSIZE];
+	TCHAR new_pathvar[BUFSIZE];
+	TCHAR user_encoderdir[MAX_PATH];
 	
 public:
 	enum { IDD = IDD_DIALOG };
 
 	CMainDlg()
 	{
-		
+		ZeroMemory(original_pathvar,sizeof(original_pathvar));
+		ZeroMemory(new_pathvar,sizeof(new_pathvar));
 	}
 
 	virtual BOOL PreTranslateMessage(MSG* pMsg)
@@ -74,8 +81,11 @@ public:
 		MESSAGE_HANDLER(WM_INITDIALOG, OnInitDialog)
 		COMMAND_ID_HANDLER(ID_PACK, OnPack)
 		COMMAND_ID_HANDLER(IDCANCEL, OnCancel)
+		COMMAND_ID_HANDLER(IDC_BROWSE, OnBrowse)
 		CHAIN_MSG_MAP(CDropFileTarget<CMainDlg>)
 	END_MSG_MAP()
+
+
 
 	LRESULT OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
 	{
@@ -91,6 +101,7 @@ public:
 		compress_str = GetDlgItem(IDC_COMPSTR);
 		pack_sf = GetDlgItem(ID_PACK);
 		compress_type = GetDlgItem(IDC_COMPTYPE);
+		directoryname = GetDlgItem(IDC_PATH);
 
 		for (int i=0;i<_countof(pack_descr);i++)compress_type.AddString((TCHAR*)pack_descr[i]);
 		compress_type.SetCurSel(0);
@@ -153,7 +164,42 @@ public:
 			FindClose(fh);
 		}
 
+	   load_settings();
+
 		return TRUE;
+	}
+
+	void load_settings()
+	{		
+		CRegKeyEx reg;
+		CRegKeyEx subkey;
+		TCHAR encoder_path[MAX_PATH] = {0};
+		
+		long lRet;
+		ULONG size;
+		//synthlist.GetLBText(selection,device_name.GetBuffer(n));
+		lRet = reg.Create(HKEY_CURRENT_USER, L"Software\\sfpacker");
+		if (lRet == ERROR_SUCCESS){
+			lRet = reg.QueryStringValue(L"path",NULL,&size);
+			if (lRet == ERROR_SUCCESS) {
+				reg.QueryStringValue(L"path",encoder_path,&size);
+			}
+			else //create new string, gulp! set it to app dir
+			{
+				TCHAR installpath[MAX_PATH] = {0};
+				GetModuleFileName(GetModuleHandle(0), installpath, MAX_PATH);
+				PathRemoveFileSpec(installpath);
+				_tcscpy(encoder_path,installpath);
+				reg.SetStringValue(L"path",encoder_path);
+			}
+			reg.Close();
+		}
+		directoryname.SetWindowText(encoder_path);
+
+
+		GetEnvironmentVariable(L"PATH",original_pathvar, BUFSIZE);
+			wsprintf(new_pathvar,L"%s;%s",original_pathvar,encoder_path);
+		SetEnvironmentVariable(L"PATH", new_pathvar);
 	}
 
 	void ProcessFile(LPCTSTR lpszPath)
@@ -295,6 +341,57 @@ public:
 	    TCHAR sf_path[MAX_PATH] ={0};
 		filename.GetWindowText(sf_path, sizeof(sf_path));   
 		do_fileops(sf_path);
+		return 0;
+	}
+
+	LRESULT OnBrowse(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
+	{
+		TCHAR folderpath[MAX_PATH];
+		BROWSEINFO bi;
+		memset(&bi, 0, sizeof(bi));
+		int retVal = false;
+		bi.ulFlags   = BIF_USENEWUI;
+		bi.lpszTitle = L"Select the directory that holds your encoders...";
+		::OleInitialize(NULL);
+		LPITEMIDLIST pIDL = ::SHBrowseForFolder(&bi);
+
+		if(pIDL != NULL)
+		{
+			// Create a buffer to store the path, then 
+			// get the path.
+			TCHAR buffer[_MAX_PATH] = {'\0'};
+			if(::SHGetPathFromIDList(pIDL, buffer) != 0)
+			{
+				// Set the string value.
+				_tcscpy(folderpath,buffer);
+				retVal = true;
+			}
+
+			// free the item id list
+			CoTaskMemFree(pIDL);
+		}
+		::OleUninitialize();
+		if (retVal)
+		{
+			CRegKeyEx reg;
+			CRegKeyEx subkey;
+			TCHAR encoder_path[MAX_PATH] = {0};
+			long lRet;
+			ULONG size;
+			lRet = reg.Create(HKEY_CURRENT_USER, L"Software\\sfpacker");
+			if (lRet == ERROR_SUCCESS){
+				lRet = reg.QueryStringValue(L"path",NULL,&size);
+				if (lRet == ERROR_SUCCESS) {
+					reg.SetStringValue(L"path",folderpath);
+					directoryname.SetWindowText(folderpath);
+					ZeroMemory(new_pathvar,sizeof(new_pathvar));
+					GetEnvironmentVariable(L"PATH",original_pathvar, BUFSIZE);
+					wsprintf(new_pathvar,L"%s;%s",original_pathvar,folderpath);
+					SetEnvironmentVariable(L"PATH", new_pathvar);
+				}
+				reg.Close();
+			}
+		}
 		return 0;
 	}
 
