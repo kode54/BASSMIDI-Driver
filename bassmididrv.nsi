@@ -77,7 +77,6 @@ Section "Needed (required)"
    File bassmididrv.dll 
    File bassmididrvcfg.exe
    File sfpacker.exe
-   File opusenc.exe
    ;check if already installed
    StrCpy  $1 "0"
 LOOP1:
@@ -108,7 +107,6 @@ NEXT1:
    File bassmididrv.dll 
    File bassmididrvcfg.exe
    File sfpacker.exe
-   File opusenc.exe
    ;check if already installed
    StrCpy  $1 "0"
 LOOP2:
@@ -183,7 +181,6 @@ ${Else}
    ${DeleteOnReboot} $WINDIR\SysWow64\bassmididrv\basswv.dll
    ${DeleteOnReboot} $WINDIR\SysWow64\bassmididrv\bassopus.dll
    ${DeleteOnReboot} $WINDIR\SysWow64\bassmididrv\sfpacker.exe
-   ${DeleteOnReboot} $WINDIR\SysWow64\bassmididrv\opusenc.exe
   Reboot
 ${Endif}
 ${Else}
@@ -201,7 +198,6 @@ ${Else}
   ${DeleteOnReboot} $WINDIR\System32\bassmididrv\basswv.dll
   ${DeleteOnReboot} $WINDIR\System32\bassmididrv\bassopus.dll
   ${DeleteOnReboot} $WINDIR\System32\bassmididrv\sfpacker.exe
-  ${DeleteOnReboot} $WINDIR\System32\bassmididrv\opusenc.exe
   Reboot
 ${Endif}
 ${EndIf}
