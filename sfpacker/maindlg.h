@@ -42,7 +42,7 @@ const TCHAR* pack_cmdline[] =
 { 
   L"flac --best -", 
   L"lame -V 2 -",
-  L"mpcenc --quality 5 -",
+  L"mpcenc --quality 5 - -",
   L"opusenc --force-rate 48000 - -",
   L"wavpack -h -",
   L"wavpack -hb384 -",
