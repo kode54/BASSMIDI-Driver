@@ -268,7 +268,7 @@ public:
 			_tcscpy(new_fname,sf_path);
 			PathRemoveExtension(new_fname);
 			lstrcat(new_fname,L".sf2");
-			if (!BASS_MIDI_FontUnpack(sf2,new_fname,0)) {
+			if (!BASS_MIDI_FontUnpack(sf2,new_fname,BASS_UNICODE)) {
 				MessageBox(L"SoundFont unpacking failed",L"Error",MB_ICONSTOP);
 				BASS_MIDI_FontFree(sf2);
 				return 1;
