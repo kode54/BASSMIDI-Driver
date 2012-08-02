@@ -26,29 +26,22 @@ using namespace std;
 using namespace utf8util;
 
 
-const TCHAR* pack_descr[] = 
-{ 
-  L"FLAC", 
-  L"LAME (V2)",
-  L"Musepack (Q5)",
-  L"Opus",
-  L"WavPack (lossless)",
-  L"WavPack (lossy, HQ)",
-  L"WavPack (lossy, average)",
-  L"WavPack (lossy, low)",
-  L"Vorbis (Q3)"
-};
-const TCHAR* pack_cmdline[] = 
-{ 
-  L"flac --best -", 
-  L"lame -V 2 -",
-  L"mpcenc --quality 5 - -",
-  L"opusenc --force-rate 48000 - -",
-  L"wavpack -h -",
-  L"wavpack -hb384 -",
-  L"wavpack -hb256 -", 
-  L"wavpack -hb128 -",
-  L"oggenc2 -q 3 -"
+const struct
+{
+	TCHAR* descr;
+	TCHAR* cmdline;
+	DWORD flags;
+}
+packers[] = {
+	{ L"FLAC",                     L"flac --best -",                  0 },
+	{ L"LAME (V2)",                L"lame -V 2 -",                    0 },
+	{ L"Musepack (Q5)",            L"mpcenc --quality 5 - -",         0 },
+	{ L"Opus",                     L"opusenc --raw-chan 1 - -",       BASS_MIDI_PACK_NOHEAD },
+	{ L"WavPack (lossless)",       L"wavpack -h -",                   0 },
+	{ L"WavPack (lossy, HQ)",      L"wavpack -hb384 -",               0 },
+	{ L"WavPack (lossy, average)", L"wavpack -hb256 -",               0 },
+	{ L"WavPack (lossy, low)",     L"wavpack -hb128 -",               0 },
+	{ L"Vorbis (Q3)",              L"oggenc2 -q 3 -",                 0 }
 };
 
 unsigned int lossy_ctypes[]={0x10002, 0x10005, 0x10a00,0x10500, 0x11200};
@@ -101,7 +94,7 @@ public:
 		compress_type = GetDlgItem(IDC_COMPTYPE);
 		directoryname = GetDlgItem(IDC_PATH);
 
-		for (int i=0;i<_countof(pack_descr);i++)compress_type.AddString((TCHAR*)pack_descr[i]);
+		for (int i=0;i<_countof(packers);i++)compress_type.AddString((TCHAR*)packers[i].descr);
 		compress_type.SetCurSel(0);
 
 		TCHAR installpath[1024] = {0};
@@ -322,8 +315,8 @@ public:
 			fileAttr = GetFileAttributes(bkup_fname);
 			if (0xFFFFFFFF == fileAttr) CopyFile(sf_path,bkup_fname,true);
 			_tcscpy(encoder_string, user_encoderdir);
-			_tcscat(encoder_string, pack_cmdline[sel]);
-			if(!BASS_MIDI_FontPack(sf2,packed_fname,encoder_string,BASS_UNICODE))
+			_tcscat(encoder_string, packers[sel].cmdline);
+			if(!BASS_MIDI_FontPack(sf2,packed_fname,encoder_string,BASS_UNICODE|packers[sel].flags))
 			{
 				MessageBox(L"SoundFont packing failed",L"Error",MB_ICONSTOP);
 				BASS_MIDI_FontFree(sf2);
