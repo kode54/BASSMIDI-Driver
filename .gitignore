@@ -2,6 +2,7 @@
 /bassmididrv_source/*.sdf
 /bassmididrv_source/*.vcxproj.user
 /bassmididrv_source/*.suo
+/bassmididrv_source/*.user
 /bassmididrv_source/ipch
 /bassmididrv_source/Release
 /bassmididrv_source/Debug
@@ -10,8 +11,17 @@
 /drivercfg/*.sdf
 /drivercfg/*.vcxproj.user
 /drivercfg/*.suo
+/drivercfg/*.user
 /drivercfg/ipch
 /drivercfg/Release
 /drivercfg/Debug
+/sfpacker/*.opensdf
+/sfpacker/*.sdf
+/sfpacker/*.vcxproj.user
+/sfpacker/*.suo
+/sfpacker/*.user
+/sfpacker/ipch
+/sfpacker/Release
+/sfpacker/Debug
 *.dll
 *.exe
