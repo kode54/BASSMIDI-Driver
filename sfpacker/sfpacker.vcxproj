@@ -11,9 +11,10 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <SccProjectName />
-    <SccLocalPath />
     <ProjectName>sfpacker</ProjectName>
+    <ProjectGuid>{C83BC18F-5CDC-FEE9-4E53-BB24328DC43D}</ProjectGuid>
+    <RootNamespace>sfpacker</RootNamespace>
+    <Keyword>AtlProj</Keyword>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
