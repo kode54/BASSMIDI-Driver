@@ -141,47 +141,53 @@ public:
 	{
 		BASS_MIDI_FONTINFO info;
 		HSOUNDFONT sf2 = BASS_MIDI_FontInit(szFileName,BASS_UNICODE);
+		const TCHAR* compression;
 		BASS_MIDI_FontGetInfo(sf2,&info);
 		wstring utf8 = utf16_from_utf8(info.name);
-		listbox.AddItem(0,0,utf8.c_str());
 		switch (info.samtype)
 		{
+		default:
+			compression = L"Unsupported";
+			break;
 		case -1:
-			listbox.AddItem(0,1,L"Unknown");
+			compression = L"Unknown";
 			break;
 		case 0:
-			listbox.AddItem(0,1,L"None");
+			compression = L"None";
 			break;
 		case 0x10002:
-			listbox.AddItem(0,1,L"Vorbis");
+			compression = L"Vorbis";
 			break;
 		case 0x10003:
-			listbox.AddItem(0,1,L"MP1");
+			compression = L"MP1";
 			break;
 		case 0x10004:
-			listbox.AddItem(0,1,L"MP2");
+			compression = L"MP2";
 			break;
 		case 0x10005:
-			listbox.AddItem(0,1,L"MP3");
+			compression = L"MP3";
 			break;
 		case 0x10900:
-			listbox.AddItem(0,1,L"FLAC");
+			compression = L"FLAC";
 			break;
 		case 0x10901:
-			listbox.AddItem(0,1,L"OggFLAC");
+			compression = L"OggFLAC";
 			break;
 		case 0x10500:
-			listbox.AddItem(0,1,L"WavPack");
+			compression = L"WavPack";
 			break;
 		case 0x10a00:
-			listbox.AddItem(0,1,L"Musepack");
+			compression = L"Musepack";
 			break;
 		case 0x11200:
-			listbox.AddItem(0,1,L"Opus");
+			compression = L"Opus";
 			break;
 		}
-		listbox.AddItem(0,2,szFileName);
 		BASS_MIDI_FontFree(sf2);
+		int amount_items = listbox.GetItemCount();
+		listbox.AddItem(amount_items,0,utf8.c_str());
+		listbox.AddItem(amount_items,1,compression);
+		listbox.AddItem(amount_items,2,szFileName);
 	}
 
 	LRESULT OnButtonAdd(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/ )
