@@ -186,6 +186,9 @@ typedef struct {
 	DWORD flags;
 } BASS_MIDI_DEVICEINFO;
 
+// BASS_MIDI_FontPack flags
+#define BASS_MIDI_PACK_NOHEAD		1	// don't send a WAV header to the encoder
+
 typedef void (CALLBACK MIDIINPROC)(DWORD device, double time, const void *buffer, DWORD length, void *user);
 /* User MIDI input callback function.
 device : MIDI input device
@@ -212,6 +215,7 @@ HSTREAM BASSMIDIDEF(BASS_MIDI_StreamGetChannel)(HSTREAM handle, DWORD chan);
 HSOUNDFONT BASSMIDIDEF(BASS_MIDI_FontInit)(const void *file, DWORD flags);
 BOOL BASSMIDIDEF(BASS_MIDI_FontFree)(HSOUNDFONT handle);
 BOOL BASSMIDIDEF(BASS_MIDI_FontGetInfo)(HSOUNDFONT handle, BASS_MIDI_FONTINFO *info);
+BOOL BASSMIDIDEF(BASS_MIDI_FontGetPresets)(HSOUNDFONT handle, DWORD *presets);
 const char *BASSMIDIDEF(BASS_MIDI_FontGetPreset)(HSOUNDFONT handle, int preset, int bank);
 BOOL BASSMIDIDEF(BASS_MIDI_FontLoad)(HSOUNDFONT handle, int preset, int bank);
 BOOL BASSMIDIDEF(BASS_MIDI_FontUnload)(HSOUNDFONT handle, int preset, int bank);
