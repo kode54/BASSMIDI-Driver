@@ -72,6 +72,7 @@ Section "Needed (required)"
    File bassflac.dll
    File basswv.dll
    File bassopus.dll   
+   File bass_mpc.dll 
    File bassmidi.dll 
    File bassmididrv.dll 
    File bassmididrvcfg.exe
@@ -102,6 +103,7 @@ NEXT1:
    File bassflac.dll
    File basswv.dll
    File bassopus.dll
+   File bass_mpc.dll 
    File bassmidi.dll 
    File bassmididrv.dll 
    File bassmididrvcfg.exe
@@ -174,6 +176,7 @@ ${Else}
   ${DeleteOnReboot} $WINDIR\SysWow64\bassmididrv\bass.dll
   ${DeleteOnReboot} $WINDIR\SysWow64\bassmididrv\bassmidi.dll
   ${DeleteOnReboot} $WINDIR\SysWow64\bassmididrv\bassmididrv.dll
+   ${DeleteOnReboot} $WINDIR\SysWow64\bassmididrv\bass_mpc.dll 
   ${DeleteOnReboot} $WINDIR\SysWow64\bassmididrv\bassmididrvuninstall.exe
   ${DeleteOnReboot} $WINDIR\SysWow64\bassmididrv\bassmididrvcfg.exe
    ${DeleteOnReboot} $WINDIR\SysWow64\bassmididrv\bassflac.dll
@@ -185,12 +188,13 @@ ${Else}
 ${Endif}
 ${Else}
 ${If} ${AtLeastWinVista}
-  RMDir /r  "$WINDIR\SysWow64\bassmididrv"
+  RMDir /r  "$WINDIR\System32\bassmididrv"
 ${Else}
   MessageBox MB_OK "Note: The uninstaller will reboot your system to remove drivers."
   ${DeleteOnReboot} $WINDIR\System32\bassmididrv\bass.dll
   ${DeleteOnReboot} $WINDIR\System32\bassmididrv\bassmidi.dll
   ${DeleteOnReboot} $WINDIR\System32\bassmididrv\bassmididrv.dll
+  ${DeleteOnReboot} $WINDIR\System32\bassmididrv\bass_mpc.dll 
   ${DeleteOnReboot} $WINDIR\System32\bassmididrv\bassmididrvuninstall.exe
   ${DeleteOnReboot} $WINDIR\System32\bassmididrv\bassmididrvcfg.exe
   ${DeleteOnReboot} $WINDIR\System32\bassmididrv\bassflac.dll
