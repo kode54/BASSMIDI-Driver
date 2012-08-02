@@ -30,22 +30,24 @@ const TCHAR* pack_descr[] =
   L"FLAC", 
   L"LAME (V2)",
   L"Musepack (Q5)",
+  L"Opus",
   L"WavPack (lossless)",
   L"WavPack (lossy, HQ)",
   L"WavPack (lossy, average)",
   L"WavPack (lossy, low)",
-  L"Vorbis (Q4)"
-
+  L"Vorbis (Q3)"
 };
 const TCHAR* pack_cmdline[] = 
 { 
-L"flac --best -", 
-  L"lame -v2 -",
-  L"mpcenc -q5 -",
+  L"flac --best -", 
+  L"lame -V 2 -",
+  L"mpcenc --quality 5 -",
+  L"opusenc --force-rate 48000 - -",
   L"wavpack -h -",
   L"wavpack -hb384 -",
   L"wavpack -hb256 -", 
-  L"wavpack -hb128 -" 
+  L"wavpack -hb128 -",
+  L"oggenc2 -q 3 -"
 };
 
 class CMainDlg : public CDialogImpl<CMainDlg>, public CDropFileTarget<CMainDlg>, public CMessageFilter
@@ -130,8 +132,9 @@ public:
 		LOADBASSMIDIFUNCTION(BASS_MIDI_FontUnpack);
 		LOADBASSMIDIFUNCTION(BASS_MIDI_FontFree);
 
-		BASS_Init(0,44100,0,0,NULL);
 		BASS_SetConfig(BASS_CONFIG_UPDATEPERIOD,0);
+		BASS_Init(0,44100,0,0,NULL);
+		
 
 		WIN32_FIND_DATA fd;
 		HANDLE fh;
