@@ -61,8 +61,6 @@ class CMainDlg : public CDialogImpl<CMainDlg>, public CDropFileTarget<CMainDlg>,
 	CComboBox compress_type;
 	CStatic   compress_str, filename, directoryname;
 	CButton  pack_sf;
-	TCHAR original_pathvar[BUFSIZE];
-	TCHAR new_pathvar[BUFSIZE];
 	TCHAR user_encoderdir[MAX_PATH];
 	
 public:
@@ -70,8 +68,6 @@ public:
 
 	CMainDlg()
 	{
-		ZeroMemory(original_pathvar,sizeof(original_pathvar));
-		ZeroMemory(new_pathvar,sizeof(new_pathvar));
 	}
 
 	virtual BOOL PreTranslateMessage(MSG* pMsg)
@@ -197,11 +193,8 @@ public:
 			reg.Close();
 		}
 		directoryname.SetWindowText(encoder_path);
-
-
-		GetEnvironmentVariable(L"PATH",original_pathvar, BUFSIZE);
-			wsprintf(new_pathvar,L"%s;%s",original_pathvar,encoder_path);
-		SetEnvironmentVariable(L"PATH", new_pathvar);
+		_tcscpy(user_encoderdir, encoder_path);
+		_tcscat(user_encoderdir, _T("\\"));
 	}
 
 	void ProcessFile(LPCTSTR lpszPath)
@@ -303,6 +296,7 @@ public:
 
 	int do_fileops(TCHAR* sf_path)
 	{
+		TCHAR encoder_string[MAX_PATH] = {0};
 		TCHAR bkup_fname[MAX_PATH] = {0};
 		TCHAR packed_fname[MAX_PATH] = {0};
 		TCHAR unpacked_fname[MAX_PATH] = {0};
@@ -327,7 +321,9 @@ public:
 			DWORD       fileAttr;
 			fileAttr = GetFileAttributes(bkup_fname);
 			if (0xFFFFFFFF == fileAttr) CopyFile(sf_path,bkup_fname,true);
-			if(!BASS_MIDI_FontPack(sf2,packed_fname,pack_cmdline[sel],BASS_UNICODE))
+			_tcscpy(encoder_string, user_encoderdir);
+			_tcscat(encoder_string, pack_cmdline[sel]);
+			if(!BASS_MIDI_FontPack(sf2,packed_fname,encoder_string,BASS_UNICODE))
 			{
 				MessageBox(L"SoundFont packing failed",L"Error",MB_ICONSTOP);
 				BASS_MIDI_FontFree(sf2);
@@ -421,13 +417,11 @@ public:
 				if (lRet == ERROR_SUCCESS) {
 					reg.SetStringValue(L"path",folderpath);
 					directoryname.SetWindowText(folderpath);
-					ZeroMemory(new_pathvar,sizeof(new_pathvar));
-					GetEnvironmentVariable(L"PATH",original_pathvar, BUFSIZE);
-					wsprintf(new_pathvar,L"%s;%s",original_pathvar,folderpath);
-					SetEnvironmentVariable(L"PATH", new_pathvar);
 				}
 				reg.Close();
 			}
+			_tcscpy(user_encoderdir, folderpath);
+			_tcscat(user_encoderdir, _T("\\"));
 		}
 		return 0;
 	}
