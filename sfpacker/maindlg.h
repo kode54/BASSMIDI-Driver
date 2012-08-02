@@ -51,6 +51,8 @@ const TCHAR* pack_cmdline[] =
   L"oggenc2 -q 3 -"
 };
 
+unsigned int lossy_ctypes[]={0x10002, 0x10005, 0x10a00,0x10500, 0x11200};
+
 #define BUFSIZE 4096
 
 class CMainDlg : public CDialogImpl<CMainDlg>, public CDropFileTarget<CMainDlg>, public CMessageFilter
@@ -301,18 +303,31 @@ public:
 
 	int do_fileops(TCHAR* sf_path)
 	{
-		TCHAR new_fname[MAX_PATH] = {0};
+		TCHAR bkup_fname[MAX_PATH] = {0};
+		TCHAR packed_fname[MAX_PATH] = {0};
+		TCHAR unpacked_fname[MAX_PATH] = {0};
 		BASS_MIDI_FONTINFO info;
 		HSOUNDFONT sf2 = BASS_MIDI_FontInit(sf_path,BASS_UNICODE);
 		BASS_MIDI_FontGetInfo(sf2,&info);
-	
+
+		_tcscpy(bkup_fname,sf_path);
+		_tcscpy(packed_fname,sf_path);
+		_tcscpy(unpacked_fname,sf_path);
+		PathRemoveExtension(bkup_fname);
+		lstrcat(bkup_fname,L".bak");
+		PathRemoveExtension(packed_fname);
+		lstrcat(packed_fname,L".sf2pack");
+		PathRemoveExtension(unpacked_fname);
+		lstrcat(unpacked_fname,L".sf2");
+
 		if (info.samtype == 0) //pack!
 		{
+			
 			int sel = compress_type.GetCurSel();
-			_tcscpy(new_fname,sf_path);
-			PathRemoveExtension(new_fname);
-			lstrcat(new_fname,L".sf2pack");
-			if(!BASS_MIDI_FontPack(sf2,new_fname,pack_cmdline[sel],BASS_UNICODE))
+			DWORD       fileAttr;
+			fileAttr = GetFileAttributes(bkup_fname);
+			if (0xFFFFFFFF == fileAttr) CopyFile(sf_path,bkup_fname,true);
+			if(!BASS_MIDI_FontPack(sf2,packed_fname,pack_cmdline[sel],BASS_UNICODE))
 			{
 				MessageBox(L"SoundFont packing failed",L"Error",MB_ICONSTOP);
 				BASS_MIDI_FontFree(sf2);
@@ -322,17 +337,39 @@ public:
 		}
 		else //depack!
 		{
-			_tcscpy(new_fname,sf_path);
-			PathRemoveExtension(new_fname);
-			lstrcat(new_fname,L".sf2");
-			if (!BASS_MIDI_FontUnpack(sf2,new_fname,BASS_UNICODE)) {
+			for (int i=0;i<_countof(lossy_ctypes);i++)
+			{
+				if (info.samtype == lossy_ctypes[i])
+				{
+					int iResponse = MessageBox(L"The file you loaded seems to be a lossy compressed file.\nUsing unpacked SoundFonts from lossy sources is not recommended. Sure you want to unpack?",L"WARNING",MB_YESNO|MB_ICONINFORMATION);
+					if (iResponse == IDNO)
+					{
+						BASS_MIDI_FontFree(sf2);
+						return 1;
+					}
+				}
+			}
+			if (!BASS_MIDI_FontUnpack(sf2,unpacked_fname,BASS_UNICODE)) {
 				MessageBox(L"SoundFont unpacking failed",L"Error",MB_ICONSTOP);
 				BASS_MIDI_FontFree(sf2);
 				return 1;
 			}
 			MessageBox(L"SoundFont unpacking succeeded",L"Success!",MB_ICONINFORMATION);
+			if(info.samtype == 0x10900)
+			{
+				int iResponse = MessageBox(L"You seemed to have unpacked a lossless compressed file.\nWant to delete the packed file and backups? (if they exist)",L"Delete unneeded files?",MB_YESNO|MB_ICONINFORMATION);
+				if (iResponse == IDYES)
+				{
+					BASS_MIDI_FontFree(sf2);
+					DeleteFile(bkup_fname);
+					DeleteFile(packed_fname);
+					return 0;
+				}
+			}
+			
 		}
 		BASS_MIDI_FontFree(sf2);
+		
 		return 0;
 	}
 
