@@ -69,10 +69,14 @@ Section "Needed (required)"
    ${If} ${RunningX64}
    SetOutPath "$WINDIR\SysWow64\bassmididrv"
    File bass.dll 
+   File bassflac.dll
+   File basswv.dll
+   File bassopus.dll   
    File bassmidi.dll 
    File bassmididrv.dll 
    File bassmididrvcfg.exe
-   RegDLL "$WINDIR\SysWow64\bassmididrv\bassmididrv.dll"
+   File sfpacker.exe
+   File opusenc.exe
    ;check if already installed
    StrCpy  $1 "0"
 LOOP1:
@@ -95,10 +99,14 @@ NEXT1:
    ${Else}
    SetOutPath "$WINDIR\System32\bassmididrv"
    File bass.dll 
+   File bassflac.dll
+   File basswv.dll
+   File bassopus.dll
    File bassmidi.dll 
    File bassmididrv.dll 
    File bassmididrvcfg.exe
-   RegDLL "$WINDIR\System32\bassmididrv\bassmididrv.dll"
+   File sfpacker.exe
+   File opusenc.exe
    ;check if already installed
    StrCpy  $1 "0"
 LOOP2:
@@ -131,12 +139,14 @@ REGDONE:
    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\BASSMIDI System Synth" "UninstallString" '"$WINDIR\SysWow64\bassmididrv\bassmididrvuninstall.exe"'
    WriteRegStr HKLM "Software\BASSMIDI Driver" "path" "$WINDIR\SysWow64\bassmididrv"
    CreateShortCut "$SMPROGRAMS\BASSMIDI System Synth\Uninstall.lnk" "$WINDIR\SysWow64\bassmididrv\bassmididrvuninstall.exe" "" "$WINDIR\SysWow64\bassmididrvuninstall.exe" 0
+   CreateShortCut "$SMPROGRAMS\BASSMIDI System Synth\SoundFont Packer.lnk" "$WINDIR\SysWow64\bassmididrv\sfpacker.exe" "" "$WINDIR\SysWow64\sfpacker.exe" 0
    CreateShortCut "$SMPROGRAMS\BASSMIDI System Synth\Configure BASSMIDI Driver.lnk" "$WINDIR\SysWow64\bassmididrv\bassmididrvcfg.exe" "" "$WINDIR\SysWow64\bassmididrv\bassmididrvcfg.exe" 0
    ${Else}
    WriteUninstaller "$WINDIR\System32\bassmididrvuninstall.exe"
    WriteRegStr HKLM "Software\BASSMIDI Driver" "path" "$WINDIR\System32\bassmididrv"
    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\BASSMIDI System Synth" "UninstallString" '"$WINDIR\System32\bassmididrv\bassmididrvuninstall.exe"'
    CreateShortCut "$SMPROGRAMS\BASSMIDI System Synth\Uninstall.lnk" "$WINDIR\System32\bassmididrv\bassmididrvuninstall.exe" "" "$WINDIR\System32\bassmididrv\bassmididrvuninstall.exe" 0
+   CreateShortCut "$SMPROGRAMS\BASSMIDI System Synth\SoundFont Packer.lnk" "$WINDIR\System32\bassmididrv\sfpacker.exe" "" "$WINDIR\System32\sfpacker.exe" 0
    CreateShortCut "$SMPROGRAMS\BASSMIDI System Synth\Configure BASSMIDI Driver.lnk" "$WINDIR\System32\bassmididrv\bassmididrvcfg.exe" "" "$WINDIR\System32\bassmididrv\bassmididrvcfg.exe" 0
    ${EndIf}
    MessageBox MB_OK "Installation complete! Use the driver configuration tool which is in the 'BASSMIDI System Synth' program shortcut directory to configure the driver."
@@ -158,38 +168,36 @@ Section "Uninstall"
   RMDir /r "$SMPROGRAMS\BASSMIDI System Synth"
  ${If} ${RunningX64}
  ${If} ${AtLeastWinVista}
-  UnRegDLL "$WINDIR\SysWow64\bassmididrv\bassmididrv.dll"
-  Delete $WINDIR\SysWow64\bassmididrv\bass.dll
-  Delete $WINDIR\SysWow64\bassmididrv\bassmidi.dll
-  Delete $WINDIR\SysWow64\bassmididrv\bassmididrv.dll
-  Delete $WINDIR\SysWow64\bassmididrv\bassmididrvuninstall.exe
-  Delete $WINDIR\SysWow64\bassmididrv\bassmididrvcfg.exe
+  RMDir /r  "$WINDIR\SysWow64\bassmididrv"
 ${Else}
-  UnRegDLL "$WINDIR\SysWow64\bassmididrv\bassmididrv.dll"
   MessageBox MB_OK "Note: The uninstaller will reboot your system to remove drivers."
   ${DeleteOnReboot} $WINDIR\SysWow64\bassmididrv\bass.dll
   ${DeleteOnReboot} $WINDIR\SysWow64\bassmididrv\bassmidi.dll
   ${DeleteOnReboot} $WINDIR\SysWow64\bassmididrv\bassmididrv.dll
   ${DeleteOnReboot} $WINDIR\SysWow64\bassmididrv\bassmididrvuninstall.exe
   ${DeleteOnReboot} $WINDIR\SysWow64\bassmididrv\bassmididrvcfg.exe
+   ${DeleteOnReboot} $WINDIR\SysWow64\bassmididrv\bassflac.dll
+   ${DeleteOnReboot} $WINDIR\SysWow64\bassmididrv\basswv.dll
+   ${DeleteOnReboot} $WINDIR\SysWow64\bassmididrv\bassopus.dll
+   ${DeleteOnReboot} $WINDIR\SysWow64\bassmididrv\sfpacker.exe
+   ${DeleteOnReboot} $WINDIR\SysWow64\bassmididrv\opusenc.exe
   Reboot
 ${Endif}
 ${Else}
 ${If} ${AtLeastWinVista}
-  UnRegDLL "$WINDIR\System32\bassmididrv\bassmididrv.dll"
-  Delete $WINDIR\System32\bassmididrv\bass.dll
-  Delete $WINDIR\System32\bassmididrv\bassmidi.dll
-  Delete $WINDIR\System32\bassmididrv\bassmididrv.dll
-  Delete $WINDIR\System32\bassmididrv\bassmididrvuninstall.exe
-  Delete $WINDIR\System32\bassmididrv\bassmididrvcfg.exe
+  RMDir /r  "$WINDIR\SysWow64\bassmididrv"
 ${Else}
-  UnRegDLL "$WINDIR\System32\bassmididrv.dll"
   MessageBox MB_OK "Note: The uninstaller will reboot your system to remove drivers."
   ${DeleteOnReboot} $WINDIR\System32\bassmididrv\bass.dll
   ${DeleteOnReboot} $WINDIR\System32\bassmididrv\bassmidi.dll
   ${DeleteOnReboot} $WINDIR\System32\bassmididrv\bassmididrv.dll
   ${DeleteOnReboot} $WINDIR\System32\bassmididrv\bassmididrvuninstall.exe
   ${DeleteOnReboot} $WINDIR\System32\bassmididrv\bassmididrvcfg.exe
+  ${DeleteOnReboot} $WINDIR\System32\bassmididrv\bassflac.dll
+  ${DeleteOnReboot} $WINDIR\System32\bassmididrv\basswv.dll
+  ${DeleteOnReboot} $WINDIR\System32\bassmididrv\bassopus.dll
+  ${DeleteOnReboot} $WINDIR\System32\bassmididrv\sfpacker.exe
+  ${DeleteOnReboot} $WINDIR\System32\bassmididrv\opusenc.exe
   Reboot
 ${Endif}
 ${EndIf}
