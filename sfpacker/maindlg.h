@@ -37,14 +37,15 @@ const TCHAR* pack_descr[] =
   L"Vorbis (Q4)"
 
 };
-const char* pack_cmdline[] = 
-{ "flac --best -", 
-  "lame -v2 -",
-  "mpcenc -q5 -",
-  "wavpack -h -",
-  "wavpack -hb384 -",
-  "wavpack -hb256 -", 
-  "wavpack -hb128 -" 
+const TCHAR* pack_cmdline[] = 
+{ 
+L"flac --best -", 
+  L"lame -v2 -",
+  L"mpcenc -q5 -",
+  L"wavpack -h -",
+  L"wavpack -hb384 -",
+  L"wavpack -hb256 -", 
+  L"wavpack -hb128 -" 
 };
 
 class CMainDlg : public CDialogImpl<CMainDlg>, public CDropFileTarget<CMainDlg>, public CMessageFilter
@@ -90,6 +91,7 @@ public:
 		compress_type = GetDlgItem(IDC_COMPTYPE);
 
 		for (int i=0;i<_countof(pack_descr);i++)compress_type.AddString((TCHAR*)pack_descr[i]);
+		compress_type.SetCurSel(0);
 
 		TCHAR installpath[1024] = {0};
 		TCHAR basspath[1024] = {0};
@@ -255,13 +257,19 @@ public:
 		HSOUNDFONT sf2 = BASS_MIDI_FontInit(sf_path,BASS_UNICODE);
 		BASS_MIDI_FontGetInfo(sf2,&info);
 	
-
 		if (info.samtype == 0) //pack!
 		{
+			int sel = compress_type.GetCurSel();
 			_tcscpy(new_fname,sf_path);
 			PathRemoveExtension(new_fname);
 			lstrcat(new_fname,L".sf2pack");
-
+			if(!BASS_MIDI_FontPack(sf2,new_fname,pack_cmdline[sel],BASS_UNICODE))
+			{
+				MessageBox(L"SoundFont packing failed",L"Error",MB_ICONSTOP);
+				BASS_MIDI_FontFree(sf2);
+				return 1;
+			}
+			MessageBox(L"SoundFont packing succeeded",L"Success!",MB_ICONINFORMATION);
 		}
 		else //depack!
 		{
@@ -274,7 +282,6 @@ public:
 				return 1;
 			}
 			MessageBox(L"SoundFont unpacking succeeded",L"Success!",MB_ICONINFORMATION);
-
 		}
 		BASS_MIDI_FontFree(sf2);
 		return 0;
