@@ -34,6 +34,7 @@ public:
 	   COMMAND_ID_HANDLER(IDC_DOWNSF,OnButtonDown)
 	   COMMAND_ID_HANDLER(IDC_UPSF,OnButtonUp)
 	   COMMAND_ID_HANDLER(IDC_SFAPPLY,OnButtonApply)
+	   COMMAND_ID_HANDLER(IDC_CLEARALL, OnClearAll)
 	   CHAIN_MSG_MAP(CDropFileTarget<CView1>)
    END_MSG_MAP()
 
@@ -222,6 +223,13 @@ public:
 	{
 		int selectedindex = listbox.GetSelectionMark();
 		listbox.DeleteItem(selectedindex);
+		return 0;
+
+	}
+
+	LRESULT OnClearAll( WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/ )
+	{
+		listbox.DeleteAllItems();
 		return 0;
 
 	}
