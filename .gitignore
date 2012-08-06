@@ -25,3 +25,4 @@
 /sfpacker/Debug
 *.dll
 *.exe
+git_ver.h
