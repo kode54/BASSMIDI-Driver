@@ -48,18 +48,116 @@ unsigned int lossy_ctypes[]={0x10002, 0x10005, 0x10a00,0x10500, 0x11200};
 
 #define BUFSIZE 4096
 
+class CProcessThread : public CThreadImpl<CProcessThread>
+{
+	HWND m_hWndParent;
+	int m_compress_type;
+	TCHAR * user_encoderdir;
+	TCHAR * sf_path;
+
+public:
+	CProcessThread( HWND hWndParent, int compress_type, TCHAR * pEncoderDir, TCHAR * pPath )
+		: m_hWndParent( hWndParent ), m_compress_type( compress_type )
+	{
+		user_encoderdir = _tcsdup( pEncoderDir );
+		sf_path = _tcsdup( pPath );
+	}
+	~CProcessThread()
+	{
+		free( sf_path );
+		free( user_encoderdir );
+	}
+
+	DWORD Run()
+	{
+		TCHAR encoder_string[MAX_PATH] = {0};
+		TCHAR bkup_fname[MAX_PATH] = {0};
+		TCHAR packed_fname[MAX_PATH] = {0};
+		TCHAR unpacked_fname[MAX_PATH] = {0};
+		BASS_MIDI_FONTINFO info;
+		HSOUNDFONT sf2 = BASS_MIDI_FontInit(sf_path,BASS_UNICODE);
+		BASS_MIDI_FontGetInfo(sf2,&info);
+
+		_tcscpy(bkup_fname,sf_path);
+		_tcscpy(packed_fname,sf_path);
+		_tcscpy(unpacked_fname,sf_path);
+		PathRemoveExtension(bkup_fname);
+		lstrcat(bkup_fname,L".bak");
+		PathRemoveExtension(packed_fname);
+		lstrcat(packed_fname,L".sf2pack");
+		PathRemoveExtension(unpacked_fname);
+		lstrcat(unpacked_fname,L".sf2");
+
+		if (info.samtype == 0) //pack!
+		{
+
+			int sel = m_compress_type;
+			DWORD       fileAttr;
+			fileAttr = GetFileAttributes(bkup_fname);
+			if (0xFFFFFFFF == fileAttr) CopyFile(sf_path,bkup_fname,true);
+			_tcscpy(encoder_string, user_encoderdir);
+			_tcscat(encoder_string, packers[sel].cmdline);
+			if(!BASS_MIDI_FontPack(sf2,packed_fname,encoder_string,BASS_UNICODE|packers[sel].flags))
+			{
+				MessageBox(m_hWndParent,L"SoundFont packing failed",L"Error",MB_ICONSTOP);
+				BASS_MIDI_FontFree(sf2);
+				return 1;
+			}
+			MessageBox(m_hWndParent,L"SoundFont packing succeeded",L"Success!",MB_ICONINFORMATION);
+		}
+		else //depack!
+		{
+			for (int i=0;i<_countof(lossy_ctypes);i++)
+			{
+				if (info.samtype == lossy_ctypes[i])
+				{
+					int iResponse = MessageBox(m_hWndParent,L"The file you loaded seems to be a lossy compressed file.\nUsing unpacked SoundFonts from lossy sources is not recommended. Sure you want to unpack?",L"WARNING",MB_YESNO|MB_ICONINFORMATION);
+					if (iResponse == IDNO)
+					{
+						BASS_MIDI_FontFree(sf2);
+						return 1;
+					}
+				}
+			}
+			if (!BASS_MIDI_FontUnpack(sf2,unpacked_fname,BASS_UNICODE)) {
+				MessageBox(m_hWndParent,L"SoundFont unpacking failed",L"Error",MB_ICONSTOP);
+				BASS_MIDI_FontFree(sf2);
+				return 1;
+			}
+			MessageBox(m_hWndParent,L"SoundFont unpacking succeeded",L"Success!",MB_ICONINFORMATION);
+			if(info.samtype == 0x10900)
+			{
+				int iResponse = MessageBox(m_hWndParent,L"You seemed to have unpacked a lossless compressed file.\nWant to delete the packed file and backups? (if they exist)",L"Delete unneeded files?",MB_YESNO|MB_ICONINFORMATION);
+				if (iResponse == IDYES)
+				{
+					BASS_MIDI_FontFree(sf2);
+					DeleteFile(bkup_fname);
+					DeleteFile(packed_fname);
+					return 0;
+				}
+			}
+
+		}
+		BASS_MIDI_FontFree(sf2);
+
+		return 0;
+	}
+};
+
 class CMainDlg : public CDialogImpl<CMainDlg>, public CDropFileTarget<CMainDlg>, public CMessageFilter
 {
 	HMODULE bass, bassmidi;
 	CComboBox compress_type;
 	CStatic   compress_str, filename, directoryname;
-	CButton  pack_sf;
+	CButton  pack_sf, exit;
+	CProcessThread * process_thread;
 	TCHAR user_encoderdir[MAX_PATH];
 	
 public:
 	enum { IDD = IDD_DIALOG };
+	enum { TIMERID = 1337L };
 
-	CMainDlg()
+	CMainDlg() : process_thread( NULL )
 	{
 	}
 
@@ -73,10 +171,27 @@ public:
 		COMMAND_ID_HANDLER(ID_PACK, OnPack)
 		COMMAND_ID_HANDLER(IDCANCEL, OnCancel)
 		COMMAND_ID_HANDLER(IDC_BROWSE, OnBrowse)
+		MESSAGE_HANDLER(WM_TIMER, OnTimer)
 		CHAIN_MSG_MAP(CDropFileTarget<CMainDlg>)
 	END_MSG_MAP()
 
 
+	LRESULT OnTimer(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lParam*/, BOOL& /*bHandled*/)
+	{
+		if ( wParam == TIMERID )
+		{
+			if ( process_thread && process_thread->Join( 10 ) == WAIT_OBJECT_0 )
+			{
+				delete process_thread;
+				process_thread = NULL;
+				KillTimer( TIMERID );
+				pack_sf.EnableWindow();
+				exit.EnableWindow();
+			}
+		}
+
+		return 0;
+	}
 
 	LRESULT OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
 	{
@@ -91,6 +206,7 @@ public:
 		filename = GetDlgItem(IDC_FILENAME);
 		compress_str = GetDlgItem(IDC_COMPSTR);
 		pack_sf = GetDlgItem(ID_PACK);
+		exit = GetDlgItem(IDCANCEL);
 		compress_type = GetDlgItem(IDC_COMPTYPE);
 		directoryname = GetDlgItem(IDC_PATH);
 
@@ -289,76 +405,10 @@ public:
 
 	int do_fileops(TCHAR* sf_path)
 	{
-		TCHAR encoder_string[MAX_PATH] = {0};
-		TCHAR bkup_fname[MAX_PATH] = {0};
-		TCHAR packed_fname[MAX_PATH] = {0};
-		TCHAR unpacked_fname[MAX_PATH] = {0};
-		BASS_MIDI_FONTINFO info;
-		HSOUNDFONT sf2 = BASS_MIDI_FontInit(sf_path,BASS_UNICODE);
-		BASS_MIDI_FontGetInfo(sf2,&info);
-
-		_tcscpy(bkup_fname,sf_path);
-		_tcscpy(packed_fname,sf_path);
-		_tcscpy(unpacked_fname,sf_path);
-		PathRemoveExtension(bkup_fname);
-		lstrcat(bkup_fname,L".bak");
-		PathRemoveExtension(packed_fname);
-		lstrcat(packed_fname,L".sf2pack");
-		PathRemoveExtension(unpacked_fname);
-		lstrcat(unpacked_fname,L".sf2");
-
-		if (info.samtype == 0) //pack!
-		{
-			
-			int sel = compress_type.GetCurSel();
-			DWORD       fileAttr;
-			fileAttr = GetFileAttributes(bkup_fname);
-			if (0xFFFFFFFF == fileAttr) CopyFile(sf_path,bkup_fname,true);
-			_tcscpy(encoder_string, user_encoderdir);
-			_tcscat(encoder_string, packers[sel].cmdline);
-			if(!BASS_MIDI_FontPack(sf2,packed_fname,encoder_string,BASS_UNICODE|packers[sel].flags))
-			{
-				MessageBox(L"SoundFont packing failed",L"Error",MB_ICONSTOP);
-				BASS_MIDI_FontFree(sf2);
-				return 1;
-			}
-			MessageBox(L"SoundFont packing succeeded",L"Success!",MB_ICONINFORMATION);
-		}
-		else //depack!
-		{
-			for (int i=0;i<_countof(lossy_ctypes);i++)
-			{
-				if (info.samtype == lossy_ctypes[i])
-				{
-					int iResponse = MessageBox(L"The file you loaded seems to be a lossy compressed file.\nUsing unpacked SoundFonts from lossy sources is not recommended. Sure you want to unpack?",L"WARNING",MB_YESNO|MB_ICONINFORMATION);
-					if (iResponse == IDNO)
-					{
-						BASS_MIDI_FontFree(sf2);
-						return 1;
-					}
-				}
-			}
-			if (!BASS_MIDI_FontUnpack(sf2,unpacked_fname,BASS_UNICODE)) {
-				MessageBox(L"SoundFont unpacking failed",L"Error",MB_ICONSTOP);
-				BASS_MIDI_FontFree(sf2);
-				return 1;
-			}
-			MessageBox(L"SoundFont unpacking succeeded",L"Success!",MB_ICONINFORMATION);
-			if(info.samtype == 0x10900)
-			{
-				int iResponse = MessageBox(L"You seemed to have unpacked a lossless compressed file.\nWant to delete the packed file and backups? (if they exist)",L"Delete unneeded files?",MB_YESNO|MB_ICONINFORMATION);
-				if (iResponse == IDYES)
-				{
-					BASS_MIDI_FontFree(sf2);
-					DeleteFile(bkup_fname);
-					DeleteFile(packed_fname);
-					return 0;
-				}
-			}
-			
-		}
-		BASS_MIDI_FontFree(sf2);
-		
+		pack_sf.EnableWindow(FALSE);
+		exit.EnableWindow(FALSE);
+		process_thread = new CProcessThread( m_hWnd, compress_type.GetCurSel(), user_encoderdir, sf_path );
+		SetTimer( TIMERID, 100 );
 		return 0;
 	}
 
@@ -421,13 +471,19 @@ public:
 
 	LRESULT OnCancel(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 	{
-
+		if (process_thread)
+		{
+			MessageBox(L"Please wait for the current job to complete.", L"Warning",MB_ICONINFORMATION);
+			return 0;
+		}
 		CloseDialog(wID);
 		return 0;
 	}
 
 	void CloseDialog(int nVal)
 	{
+		if (process_thread) process_thread->Join();
+		delete process_thread;
 		DestroyWindow();
 		::PostQuitMessage(nVal);
 	}
