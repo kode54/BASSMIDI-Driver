@@ -36,6 +36,8 @@ packers[] = {
 	{ L"FLAC",                     L"flac --best -",                  0 },
 	{ L"LAME (V2)",                L"lame -V 2 -",                    0 },
 	{ L"Musepack (Q5)",            L"mpcenc --quality 5 - -",         0 },
+	{ L"Musepack (Q6)",            L"mpcenc --quality 6 - -",         0 },
+	{ L"Musepack (Q7)",            L"mpcenc --quality 7 - -",         0 },
 	{ L"Opus",                     L"opusenc --raw-chan 1 - -",       BASS_MIDI_PACK_NOHEAD },
 	{ L"WavPack (lossless)",       L"wavpack -h -",                   0 },
 	{ L"WavPack (lossy, HQ)",      L"wavpack -hb384 -",               0 },
