@@ -73,18 +73,14 @@ public:
 	DWORD Run()
 	{
 		TCHAR encoder_string[MAX_PATH] = {0};
-		TCHAR bkup_fname[MAX_PATH] = {0};
 		TCHAR packed_fname[MAX_PATH] = {0};
 		TCHAR unpacked_fname[MAX_PATH] = {0};
 		BASS_MIDI_FONTINFO info;
 		HSOUNDFONT sf2 = BASS_MIDI_FontInit(sf_path,BASS_UNICODE);
 		BASS_MIDI_FontGetInfo(sf2,&info);
 
-		_tcscpy(bkup_fname,sf_path);
 		_tcscpy(packed_fname,sf_path);
 		_tcscpy(unpacked_fname,sf_path);
-		PathRemoveExtension(bkup_fname);
-		lstrcat(bkup_fname,L".bak");
 		PathRemoveExtension(packed_fname);
 		lstrcat(packed_fname,L".sf2pack");
 		PathRemoveExtension(unpacked_fname);
@@ -95,8 +91,6 @@ public:
 
 			int sel = m_compress_type;
 			DWORD       fileAttr;
-			fileAttr = GetFileAttributes(bkup_fname);
-			if (0xFFFFFFFF == fileAttr) CopyFile(sf_path,bkup_fname,true);
 			_tcscpy(encoder_string, user_encoderdir);
 			_tcscat(encoder_string, packers[sel].cmdline);
 			if(!BASS_MIDI_FontPack(sf2,packed_fname,encoder_string,BASS_UNICODE|packers[sel].flags))
@@ -121,6 +115,15 @@ public:
 					}
 				}
 			}
+			if (GetFileAttributes(unpacked_fname) != 0xFFFFFFFF)
+			{
+				int iResponse = MessageBox(m_hWndParent,L"The unpacked file already exists. Are you sure\nyou want to unpack over it?", L"WARNING",MB_YESNO|MB_ICONINFORMATION);
+				if (iResponse == IDNO)
+				{
+					BASS_MIDI_FontFree(sf2);
+					return 1;
+				}
+			}
 			if (!BASS_MIDI_FontUnpack(sf2,unpacked_fname,BASS_UNICODE)) {
 				MessageBox(m_hWndParent,L"SoundFont unpacking failed",L"Error",MB_ICONSTOP);
 				BASS_MIDI_FontFree(sf2);
@@ -133,7 +136,6 @@ public:
 				if (iResponse == IDYES)
 				{
 					BASS_MIDI_FontFree(sf2);
-					DeleteFile(bkup_fname);
 					DeleteFile(packed_fname);
 					return 0;
 				}
