@@ -31,6 +31,12 @@ void _endthreadex( unsigned retval );
 #include "../bass.h"
 #include "../bassmidi.h"
 
+#include "sound_out.h"
+
+extern "C" {
+BOOL WINAPI DriverCallback( DWORD dwCallBack, DWORD dwFlags, HDRVR hdrvr, DWORD msg, DWORD dwUser, DWORD dwParam1, DWORD dwParam2 );	
+}
+
 #define MAX_DRIVERS 1
 #define MAX_CLIENTS 1 // Per driver
 
@@ -65,6 +71,8 @@ static unsigned int font_count = 0;
 static HSOUNDFONT * hFonts = NULL;
 static HSTREAM hStream = 0;
 
+static BOOL sound_out_float = FALSE;
+static sound_out * sound_driver = NULL;
 
 static HINSTANCE bass = 0;			// bass handle
 static HINSTANCE bassmidi = 0;			// bassmidi handle
@@ -434,9 +442,8 @@ BOOL load_bassfuncs()
 		LOADBASSFUNCTION(BASS_Free);
 		LOADBASSFUNCTION(BASS_GetInfo);
 		LOADBASSFUNCTION(BASS_StreamFree);
-		LOADBASSFUNCTION(BASS_ChannelPlay);
-		LOADBASSFUNCTION(BASS_ChannelUpdate);
 		LOADBASSFUNCTION(BASS_PluginLoad);
+		LOADBASSFUNCTION(BASS_ChannelGetData);
 		LOADBASSMIDIFUNCTION(BASS_MIDI_StreamCreate);
 		LOADBASSMIDIFUNCTION(BASS_MIDI_FontInit);
 		LOADBASSMIDIFUNCTION(BASS_MIDI_FontFree);
@@ -481,17 +488,32 @@ unsigned __stdcall threadfunc(LPVOID lpV){
 	TCHAR config[1024];
 	BASS_MIDI_FONT * mf;
 	BASS_INFO info;
+	BOOL isvista;
 	;
 	while(opend == 0 && stop_thread == 0) {
 		Sleep(100);
+		if (sound_driver == NULL) {
+			sound_driver = create_sound_out_xaudio2();
+			const char * err = sound_driver->open(GetDesktopWindow(), 44100, 2, sound_out_float = TRUE, 88 * 2, 60);
+			if (err) {
+				delete sound_driver;
+				isvista = IsVistaOrNewer();
+				sound_driver = create_sound_out_ds();
+				err = sound_driver->open(GetDesktopWindow(), 44100, 2, sound_out_float = isvista, 44 * 2, 100);
+				if (err) err = sound_driver->open(GetDesktopWindow(), 44100, 2, sound_out_float = FALSE, 88 * 2, 100);
+			}
+			if (err) {
+				delete sound_driver;
+				sound_driver = NULL;
+				continue;
+			}
+		}
 		load_bassfuncs();
-		if ( BASS_Init( -1, 44100, BASS_DEVICE_LATENCY, 0, NULL ) ) {
-			BASS_GetInfo(&info);
-			BASS_SetConfig(BASS_CONFIG_BUFFER,max(10+info.minbuf,100));
-			BASS_SetConfig(BASS_CONFIG_UPDATEPERIOD, 0);
-			BASS_SetConfig(BASS_CONFIG_UPDATETHREADS, 0);
-			
-			hStream = BASS_MIDI_StreamCreate( 16, IsVistaOrNewer() ? BASS_SAMPLE_FLOAT : 0 | check_sinc()?BASS_MIDI_SINCINTER: 0, 44100 );
+		BASS_SetConfig(BASS_CONFIG_UPDATEPERIOD, 0);
+		BASS_SetConfig(BASS_CONFIG_UPDATETHREADS, 0);
+		if ( BASS_Init( 0, 44100, 0, GetDesktopWindow(), NULL ) ) {
+			hStream = BASS_MIDI_StreamCreate( 16, BASS_STREAM_DECODE | ( sound_out_float ? BASS_SAMPLE_FLOAT : 0 ) | (check_sinc()?BASS_MIDI_SINCINTER: 0), 44100 );
+			if (!hStream) continue;
 			BASS_MIDI_StreamEvent( hStream, 0, MIDI_EVENT_SYSTEMEX, MIDI_SYSTEM_GM1 );
 			load_settings();
 			if (GetWindowsDirectory(config, 1023 - 16))
@@ -509,7 +531,6 @@ unsigned __stdcall threadfunc(LPVOID lpV){
 				BASS_MIDI_StreamSetFonts( hStream, mf, font_count );
 				free(mf);
 			}
-			BASS_ChannelPlay( hStream, FALSE );
 			SetEvent(load_sfevent);
 			opend = 1;
 			reset_synth = 0;
@@ -523,7 +544,17 @@ unsigned __stdcall threadfunc(LPVOID lpV){
 			BASS_MIDI_StreamEvent( hStream, 0, MIDI_EVENT_SYSTEMEX, MIDI_SYSTEM_GM1 );
 		}
 		bmsyn_play_some_data();
-		BASS_ChannelUpdate( hStream, 1 );
+		if (sound_out_float) {
+			float sound_buffer[88*2];
+			int decoded = BASS_ChannelGetData( hStream, sound_buffer, BASS_DATA_FLOAT + 88 * 2 * sizeof(float) );
+			if ( decoded < 0 ) Sleep(1);
+			else sound_driver->write_frame( sound_buffer, decoded / sizeof(float), true );
+		} else {
+			short sound_buffer[88*2];
+			int decoded = BASS_ChannelGetData( hStream, sound_buffer, 88 * 2 * sizeof(short) );
+			if ( decoded < 0 ) Sleep(1);
+			else sound_driver->write_frame( sound_buffer, decoded / sizeof(short), true );
+		}
 	}
 	stop_thread=0;
 	if (hStream)
@@ -540,6 +571,10 @@ unsigned __stdcall threadfunc(LPVOID lpV){
 		BASS_Free();
 		FreeLibrary(bass);
 		bass = 0;
+	}
+	if ( sound_driver ) {
+		delete sound_driver;
+		sound_driver = NULL;
 	}
 	_endthreadex(0);
 	return 0;

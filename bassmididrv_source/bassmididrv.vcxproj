@@ -11,7 +11,10 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="bassmididrv.c" />
+    <ClCompile Include="bassmididrv.cpp" />
+    <ClCompile Include="dsound.cpp" />
+    <ClCompile Include="sound_out_dsound.cpp" />
+    <ClCompile Include="sound_out_xaudio2.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="bassmididrv.def" />
@@ -19,6 +22,13 @@
   <ItemGroup>
     <ClInclude Include="..\bass.h" />
     <ClInclude Include="..\bassmidi.h" />
+    <ClInclude Include="ds_stream.h" />
+    <ClInclude Include="inc\audiodefs.h" />
+    <ClInclude Include="inc\comdecl.h" />
+    <ClInclude Include="inc\XAudio2.h" />
+    <ClInclude Include="inc\xma2defs.h" />
+    <ClInclude Include="mmddk.h" />
+    <ClInclude Include="sound_out.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectName>bassmidi_win32drv</ProjectName>
@@ -84,7 +94,7 @@
     </Midl>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>../../bass/c;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../bass/c;inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_DEBUG;_USRDLL;I_ASM;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
@@ -143,7 +153,7 @@
       <IntrinsicFunctions>false</IntrinsicFunctions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <WholeProgramOptimization>true</WholeProgramOptimization>
-      <AdditionalIncludeDirectories>../../bass/c;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../bass/c;inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>NDEBUG;_USRDLL;I_ASM;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
