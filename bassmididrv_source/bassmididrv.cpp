@@ -505,7 +505,7 @@ unsigned __stdcall threadfunc(LPVOID lpV){
 				isvista = IsVistaOrNewer();
 				sound_driver = create_sound_out_ds();
 				err = sound_driver->open(GetDesktopWindow(), 44100, 2, sound_out_float = isvista, 44 * 2, 100);
-				if (err) err = sound_driver->open(GetDesktopWindow(), 44100, 2, sound_out_float = FALSE, 88 * 2, 100);
+				if (err && sound_out_float) err = sound_driver->open(GetDesktopWindow(), 44100, 2, sound_out_float = FALSE, 88 * 2, 100);
 			}
 			if (err) {
 				delete sound_driver;
