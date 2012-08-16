@@ -71,6 +71,7 @@ static unsigned int font_count = 0;
 static HSOUNDFONT * hFonts = NULL;
 static HSTREAM hStream = 0;
 
+static BOOL com_initialized = FALSE;
 static BOOL sound_out_float = FALSE;
 static sound_out * sound_driver = NULL;
 
@@ -492,6 +493,10 @@ unsigned __stdcall threadfunc(LPVOID lpV){
 	;
 	while(opend == 0 && stop_thread == 0) {
 		Sleep(100);
+		if (!com_initialized) {
+			if (FAILED(CoInitialize(NULL))) continue;
+			com_initialized = TRUE;
+		}
 		if (sound_driver == NULL) {
 			sound_driver = create_sound_out_xaudio2();
 			const char * err = sound_driver->open(GetDesktopWindow(), 44100, 2, sound_out_float = TRUE, 88 * 2, 60);
@@ -575,6 +580,10 @@ unsigned __stdcall threadfunc(LPVOID lpV){
 	if ( sound_driver ) {
 		delete sound_driver;
 		sound_driver = NULL;
+	}
+	if ( com_initialized ) {
+		CoUninitialize();
+		com_initialized = FALSE;
 	}
 	_endthreadex(0);
 	return 0;
