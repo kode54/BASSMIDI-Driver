@@ -1,6 +1,9 @@
 3.2:
   winmm driver
-  * imported sound code from VST MIDI driver to fix issues on Xonar cards with GX mode activated  
+  * imported sound code from VST MIDI driver to fix issues on Xonar cards with GX mode activated 
+  soundfont packer
+  * added more Musepack presets
+  * added threaded SoundFont packing  
 3.1:
   driver/config
   * added support for sf2pack files(soundfonts with lossy/lossless compressed samples)
