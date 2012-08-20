@@ -1,3 +1,6 @@
+3.3:
+  winmm driver
+  * fixed xaudio2 crashing on deletion on windows xp and older systems
 3.2:
   winmm driver
   * imported sound code from VST MIDI driver to fix issues on Xonar cards with GX mode activated 

@@ -108,8 +108,12 @@ public:
 	{
 		if ( InterlockedDecrement( &registered ) == 0 )
 		{
-			pEnumerator->UnregisterEndpointNotificationCallback( this );
-			pEnumerator->Release();
+			if (pEnumerator)
+			{
+				pEnumerator->UnregisterEndpointNotificationCallback( this );
+				pEnumerator->Release();
+				pEnumerator = NULL;
+			}
 			registered = false;
 		}
 
