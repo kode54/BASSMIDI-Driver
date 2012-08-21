@@ -469,20 +469,6 @@ BOOL load_bassfuncs()
 		return TRUE;
 }
 
-BOOL IsVistaOrNewer(){
-	OSVERSIONINFOEX osvi;
-	BOOL bOsVersionInfoEx;
-	ZeroMemory(&osvi, sizeof(OSVERSIONINFOEX));
-	osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
-	bOsVersionInfoEx = GetVersionEx((OSVERSIONINFO*) &osvi);
-	if(bOsVersionInfoEx == FALSE) return FALSE;
-	if ( VER_PLATFORM_WIN32_NT==osvi.dwPlatformId && 
-		osvi.dwMajorVersion > 5 )
-		return TRUE;
-	return FALSE;
-}
-
-
 unsigned __stdcall threadfunc(LPVOID lpV){
 	unsigned i;
 	int opend=0;
@@ -502,7 +488,6 @@ unsigned __stdcall threadfunc(LPVOID lpV){
 			const char * err = sound_driver->open(GetDesktopWindow(), 44100, 2, sound_out_float = TRUE, 88 * 2, 30);
 			if (err) {
 				delete sound_driver;
-				isvista = IsVistaOrNewer();
 				sound_driver = create_sound_out_ds();
 				err = sound_driver->open(GetDesktopWindow(), 44100, 2, sound_out_float = FALSE, 88 * 2, 50);
 			}
