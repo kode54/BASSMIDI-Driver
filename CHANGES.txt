@@ -1,3 +1,8 @@
+3.4
+  winmm driver
+  * reduced latency after accidentally increasing it to double
+  * removed floating point support enable from directsound initialization
+  * updated bassmidi
 3.3:
   winmm driver
   * fixed xaudio2 crashing on deletion on windows xp and older systems

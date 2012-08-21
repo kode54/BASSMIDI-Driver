@@ -499,13 +499,12 @@ unsigned __stdcall threadfunc(LPVOID lpV){
 		}
 		if (sound_driver == NULL) {
 			sound_driver = create_sound_out_xaudio2();
-			const char * err = sound_driver->open(GetDesktopWindow(), 44100, 2, sound_out_float = TRUE, 88 * 2, 60);
+			const char * err = sound_driver->open(GetDesktopWindow(), 44100, 2, sound_out_float = TRUE, 88 * 2, 30);
 			if (err) {
 				delete sound_driver;
 				isvista = IsVistaOrNewer();
 				sound_driver = create_sound_out_ds();
-				err = sound_driver->open(GetDesktopWindow(), 44100, 2, sound_out_float = isvista, 44 * 2, 100);
-				if (err && sound_out_float) err = sound_driver->open(GetDesktopWindow(), 44100, 2, sound_out_float = FALSE, 88 * 2, 100);
+				err = sound_driver->open(GetDesktopWindow(), 44100, 2, sound_out_float = FALSE, 88 * 2, 50);
 			}
 			if (err) {
 				delete sound_driver;
