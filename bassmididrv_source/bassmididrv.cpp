@@ -503,7 +503,6 @@ unsigned __stdcall threadfunc(LPVOID lpV){
 		if ( BASS_Init( 0, 44100, 0, GetDesktopWindow(), NULL ) ) {
 			hStream = BASS_MIDI_StreamCreate( 16, BASS_STREAM_DECODE | ( sound_out_float ? BASS_SAMPLE_FLOAT : 0 ) | (check_sinc()?BASS_MIDI_SINCINTER: 0), 44100 );
 			if (!hStream) continue;
-			BASS_MIDI_StreamEvent( hStream, 0, MIDI_EVENT_SYSTEMEX, MIDI_SYSTEM_GM1 );
 			load_settings();
 			if (GetWindowsDirectory(config, 1023 - 16))
 			{
@@ -530,7 +529,7 @@ unsigned __stdcall threadfunc(LPVOID lpV){
 		Sleep(1);
 		if (reset_synth != 0){
 			reset_synth = 0;
-			BASS_MIDI_StreamEvent( hStream, 0, MIDI_EVENT_SYSTEMEX, MIDI_SYSTEM_GM1 );
+			BASS_MIDI_StreamEvent( hStream, 0, MIDI_EVENT_SYSTEM, MIDI_SYSTEM_DEFAULT );
 		}
 		bmsyn_play_some_data();
 		if (sound_out_float) {
