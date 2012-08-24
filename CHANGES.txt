@@ -1,3 +1,6 @@
+3.5
+  winmm driver
+  * fixed some bank control change issues
 3.4
   winmm driver
   * reduced latency after accidentally increasing it to double
