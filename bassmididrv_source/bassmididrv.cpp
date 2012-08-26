@@ -73,6 +73,7 @@ static HSTREAM hStream = 0;
 
 static BOOL com_initialized = FALSE;
 static BOOL sound_out_float = FALSE;
+static float sound_out_volume_float = 1.0;
 static sound_out * sound_driver = NULL;
 
 static HINSTANCE bass = 0;			// bass handle
@@ -496,7 +497,7 @@ void load_settings()
 	lResult = RegOpenKeyEx(HKEY_LOCAL_MACHINE, L"Software\\BASSMIDI Driver", 0, KEY_READ, &hKey);
 	RegQueryValueEx(hKey, L"volume", NULL, &dwType,(LPBYTE)&config_volume, &dwSize);
 	RegCloseKey( hKey);
-	BASS_SetConfig(BASS_CONFIG_GVOL_STREAM,config_volume);
+	sound_out_volume_float = (float)config_volume / 10000.0f;
 }
 
 int check_sinc()
@@ -606,6 +607,7 @@ unsigned __stdcall threadfunc(LPVOID lpV){
 			hStream = BASS_MIDI_StreamCreate( 32, BASS_STREAM_DECODE | ( sound_out_float ? BASS_SAMPLE_FLOAT : 0 ) | (check_sinc()?BASS_MIDI_SINCINTER: 0), 44100 );
 			if (!hStream) continue;
 			load_settings();
+			sound_driver->set_volume( sound_out_volume_float );
 			if (GetWindowsDirectory(config, 1023 - 16))
 			{
 				_tcscat( config, _T("\\bassmidi.sflist") );
@@ -632,6 +634,8 @@ unsigned __stdcall threadfunc(LPVOID lpV){
 		Sleep(1);
 		if (reset_synth != 0){
 			reset_synth = 0;
+			load_settings();
+			sound_driver->set_volume( sound_out_volume_float );
 			BASS_MIDI_StreamEvent( hStream, 0, MIDI_EVENT_SYSTEMEX, MIDI_SYSTEM_DEFAULT );
 			reset_drum_channels();
 			synth_mode = synth_mode_gm;

@@ -1,3 +1,6 @@
+3.7
+  winmm driver
+  * fixed volume control
 3.6
   winmm driver
   * implemented dual port support  

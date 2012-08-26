@@ -419,6 +419,12 @@ public:
 		return 0;
 	}
 
+	virtual const char* set_volume( double volume )
+	{
+		if ( !reopen_count && FAILED( mVoice->SetVolume( volume ) ) ) return "setting volume";
+		return 0;
+	}
+
 	virtual const char* set_ratio( double ratio )
 	{
 		if ( !reopen_count && FAILED( sVoice->SetFrequencyRatio( ratio ) ) ) return "setting ratio";
