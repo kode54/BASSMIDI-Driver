@@ -37,7 +37,7 @@ extern "C" {
 BOOL WINAPI DriverCallback( DWORD dwCallBack, DWORD dwFlags, HDRVR hdrvr, DWORD msg, DWORD dwUser, DWORD dwParam1, DWORD dwParam2 );	
 }
 
-#define MAX_DRIVERS 1
+#define MAX_DRIVERS 2
 #define MAX_CLIENTS 1 // Per driver
 
 struct Driver_Client {
@@ -78,6 +78,18 @@ static sound_out * sound_driver = NULL;
 static HINSTANCE bass = 0;			// bass handle
 static HINSTANCE bassmidi = 0;			// bassmidi handle
 static HINSTANCE hinst = NULL;             //main DLL handle
+
+enum {
+	synth_mode_gm = 0,
+	synth_mode_gm2,
+	synth_mode_gs,
+	synth_mode_xg
+};
+
+static unsigned int synth_mode = synth_mode_gm;
+
+static unsigned char gs_part_to_ch[2][16];
+static unsigned char drum_channels[32];
 
 static void DoStartDriver();
 static void DoStopDriver();
@@ -224,21 +236,28 @@ STDAPI_(LONG) DriverProc(DWORD dwDriverId, HDRVR hdrvr, UINT msg, LONG lParam1, 
 	return DRV_OK;
 }
 
-HRESULT modGetCaps(PVOID capsPtr, DWORD capsSize) {
+HRESULT modGetCaps(UINT uDeviceID, PVOID capsPtr, DWORD capsSize) {
 	MIDIOUTCAPSA * myCapsA;
 	MIDIOUTCAPSW * myCapsW;
 	MIDIOUTCAPS2A * myCaps2A;
 	MIDIOUTCAPS2W * myCaps2W;
 
-	CHAR synthName[] = "BASSMIDI Driver\0";
-	WCHAR synthNameW[] = L"BASSMIDI Driver\0";
+	CHAR synthName[] = "BASSMIDI Driver";
+	WCHAR synthNameW[] = L"BASSMIDI Driver";
+
+	CHAR synthPortA[] = " (port A)\0";
+	WCHAR synthPortAW[] = L" (port A)\0";
+
+	CHAR synthPortB[] = " (port B)\0";
+	WCHAR synthPortBW[] = L" (port B)\0";
 
 	switch (capsSize) {
 	case (sizeof(MIDIOUTCAPSA)):
 		myCapsA = (MIDIOUTCAPSA *)capsPtr;
 		myCapsA->wMid = 0xffff;
 		myCapsA->wPid = 0xffff;
-		memcpy(myCapsA->szPname, synthName, sizeof(synthName));
+		memcpy(myCapsA->szPname, synthName, strlen(synthName));
+		memcpy(myCapsA->szPname + strlen(synthName), uDeviceID ? synthPortB : synthPortA, sizeof(synthPortA));
 		myCapsA->wTechnology = MOD_MIDIPORT;
 		myCapsA->vDriverVersion = 0x0090;
 		myCapsA->wVoices = 0;
@@ -251,7 +270,8 @@ HRESULT modGetCaps(PVOID capsPtr, DWORD capsSize) {
 		myCapsW = (MIDIOUTCAPSW *)capsPtr;
 		myCapsW->wMid = 0xffff;
 		myCapsW->wPid = 0xffff;
-		memcpy(myCapsW->szPname, synthNameW, sizeof(synthNameW));
+		memcpy(myCapsW->szPname, synthNameW, wcslen(synthNameW) * sizeof(wchar_t));
+		memcpy(myCapsW->szPname + wcslen(synthNameW), uDeviceID ? synthPortBW : synthPortAW, sizeof(synthPortAW));
 		myCapsW->wTechnology = MOD_MIDIPORT;
 		myCapsW->vDriverVersion = 0x0090;
 		myCapsW->wVoices = 0;
@@ -264,7 +284,8 @@ HRESULT modGetCaps(PVOID capsPtr, DWORD capsSize) {
 		myCaps2A = (MIDIOUTCAPS2A *)capsPtr;
 		myCaps2A->wMid = 0xffff;
 		myCaps2A->wPid = 0xffff;
-		memcpy(myCaps2A->szPname, synthName, sizeof(synthName));
+		memcpy(myCaps2A->szPname, synthName, strlen(synthName));
+		memcpy(myCaps2A->szPname + strlen(synthName), uDeviceID ? synthPortB : synthPortA, sizeof(synthPortA));
 		myCaps2A->wTechnology = MOD_MIDIPORT;
 		myCaps2A->vDriverVersion = 0x0090;
 		myCaps2A->wVoices = 0;
@@ -277,7 +298,8 @@ HRESULT modGetCaps(PVOID capsPtr, DWORD capsSize) {
 		myCaps2W = (MIDIOUTCAPS2W *)capsPtr;
 		myCaps2W->wMid = 0xffff;
 		myCaps2W->wPid = 0xffff;
-		memcpy(myCaps2W->szPname, synthNameW, sizeof(synthNameW));
+		memcpy(myCaps2W->szPname, synthNameW, wcslen(synthNameW) * sizeof(wchar_t));
+		memcpy(myCaps2W->szPname + wcslen(synthNameW), uDeviceID ? synthPortBW : synthPortAW, sizeof(synthPortAW));
 		myCaps2W->wTechnology = MOD_MIDIPORT;
 		myCaps2W->vDriverVersion = 0x0090;
 		myCaps2W->wVoices = 0;
@@ -293,6 +315,7 @@ HRESULT modGetCaps(PVOID capsPtr, DWORD capsSize) {
 
 
 struct evbuf_t{
+	UINT uDeviceID;
 	UINT uMsg;
 	DWORD	dwParam1;
 	DWORD	dwParam2;
@@ -330,10 +353,34 @@ static BOOL is_gs_reset(const unsigned char * data, unsigned size)
 	return TRUE;
 }
 
+void reset_drum_channels()
+{
+	static const BYTE part_to_ch[16] = { 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15 };
+
+	memset( drum_channels, 0, sizeof( drum_channels ) );
+	drum_channels[ 9 ] = 1;
+	drum_channels[ 25 ] = 1;
+
+	for ( unsigned i = 0; i < 2; i++ )
+	{
+		memcpy( gs_part_to_ch[i], part_to_ch, sizeof( gs_part_to_ch[i] ) );
+	}
+
+	if ( hStream )
+	{
+		for ( unsigned i = 0; i < 32; ++i )
+		{
+			BASS_MIDI_StreamEvent( hStream, i, MIDI_EVENT_DRUMS, drum_channels[ i ] );
+		}
+	}
+}
+
 int bmsyn_play_some_data(void){
+	UINT uDeviceID;
 	UINT uMsg;
 	DWORD	dwParam1;
 	DWORD	dwParam2;
+	DWORD   dwChannel;
 	
 	UINT evbpoint;
 	MIDIHDR *IIMidiHdr;
@@ -352,6 +399,7 @@ int bmsyn_play_some_data(void){
 			if (++evbrpoint >= EVBUFF_SIZE)
 					evbrpoint -= EVBUFF_SIZE;
 
+			uDeviceID=evbuf[evbpoint].uDeviceID;
 			uMsg=evbuf[evbpoint].uMsg;
 			dwParam1=evbuf[evbpoint].dwParam1;
 			dwParam2=evbuf[evbpoint].dwParam2;
@@ -362,8 +410,30 @@ int bmsyn_play_some_data(void){
 			switch (uMsg) {
 			case MODM_DATA:
 				dwParam2 = dwParam1 & 0xF0;
+				dwChannel = (dwParam1 & 0x0F) + (uDeviceID ? 16 : 0);
 				exlen = ( dwParam2 == 0xC0 || dwParam2 == 0xD0 ) ? 2 : 3;
-				BASS_MIDI_StreamEvents( hStream, BASS_MIDI_EVENTS_RAW, &dwParam1, exlen );
+				BASS_MIDI_StreamEvents( hStream, BASS_MIDI_EVENTS_RAW + 1 + dwChannel, &dwParam1, exlen );
+				if ( dwParam2 == 0xB0 && ( dwParam1 & 0xFF00 ) == 0 )
+				{
+					if ( synth_mode == synth_mode_xg )
+					{
+						if ( ( dwParam1 & 0xFF0000 ) == ( 127 << 16 ) ) drum_channels[ dwChannel ] = 1;
+						else drum_channels[ dwChannel ] = 0;
+					}
+					else if ( synth_mode == synth_mode_gm2 )
+					{
+						if ( ( dwParam1 & 0xFF0000 ) == ( 120 << 16 ) ) drum_channels[ dwChannel ] = 1;
+						else if ( ( dwParam1 & 0xFF0000 ) == ( 121 << 16 ) ) drum_channels[ dwChannel ] = 0;
+					}
+				}
+				else if ( dwParam2 == 0xC0 )
+				{
+					unsigned channel_masked = dwChannel & 0x0F;
+					unsigned drum_channel = drum_channels[ dwChannel ];
+					if ( ( channel_masked == 9 && !drum_channel ) ||
+						( channel_masked != 9 && drum_channel ) )
+						BASS_MIDI_StreamEvent( hStream, dwChannel, MIDI_EVENT_DRUMS, drum_channel );
+				}
 				break;
 			case MODM_LONGDATA:
 #ifdef DEBUG
@@ -377,6 +447,38 @@ int bmsyn_play_some_data(void){
 	fclose(logfile);
 #endif
 				BASS_MIDI_StreamEvents( hStream, BASS_MIDI_EVENTS_RAW, sysexbuffer, exlen );
+				if ( ( exlen == _countof( sysex_gm_reset ) && !memcmp( sysexbuffer, sysex_gm_reset, _countof( sysex_gm_reset ) ) ) ||
+					( exlen == _countof( sysex_gm2_reset ) && !memcmp( sysexbuffer, sysex_gm2_reset, _countof( sysex_gm2_reset ) ) ) ||
+					is_gs_reset( sysexbuffer, exlen ) ||
+					( exlen == _countof( sysex_xg_reset ) && !memcmp( sysexbuffer, sysex_xg_reset, _countof( sysex_xg_reset ) ) ) )
+				{
+					reset_drum_channels();
+					synth_mode = ( exlen == _countof( sysex_xg_reset ) ) ? synth_mode_xg :
+					             ( exlen == _countof( sysex_gs_reset ) ) ? synth_mode_gs :
+					       ( sysexbuffer [4] == 0x01 )                   ? synth_mode_gm :
+					                                                       synth_mode_gm2;
+				}
+				else if ( synth_mode == synth_mode_gs && exlen == 11 &&
+					sysexbuffer [0] == 0xF0 && sysexbuffer [1] == 0x41 && sysexbuffer [3] == 0x42 &&
+					sysexbuffer [4] == 0x12 && sysexbuffer [5] == 0x40 && (sysexbuffer [6] & 0xF0) == 0x10 &&
+					sysexbuffer [10] == 0xF7)
+				{
+					if (sysexbuffer [7] == 2)
+					{
+						// GS MIDI channel to part assign
+						gs_part_to_ch [ uDeviceID & 1 ][ sysexbuffer [6] & 15 ] = sysexbuffer [8];
+					}
+					else if ( sysexbuffer [7] == 0x15 )
+					{
+						// GS part to rhythm allocation
+						unsigned int drum_channel = gs_part_to_ch [ uDeviceID & 1 ][ sysexbuffer [6] & 15 ];
+						if ( drum_channel < 16 )
+						{
+							if ( uDeviceID ) drum_channel += 16;
+							drum_channels [ drum_channel ] = sysexbuffer [8];
+						}
+					}
+				}
 				free(sysexbuffer);
 				break;
 			}
@@ -501,7 +603,7 @@ unsigned __stdcall threadfunc(LPVOID lpV){
 		BASS_SetConfig(BASS_CONFIG_UPDATEPERIOD, 0);
 		BASS_SetConfig(BASS_CONFIG_UPDATETHREADS, 0);
 		if ( BASS_Init( 0, 44100, 0, GetDesktopWindow(), NULL ) ) {
-			hStream = BASS_MIDI_StreamCreate( 16, BASS_STREAM_DECODE | ( sound_out_float ? BASS_SAMPLE_FLOAT : 0 ) | (check_sinc()?BASS_MIDI_SINCINTER: 0), 44100 );
+			hStream = BASS_MIDI_StreamCreate( 32, BASS_STREAM_DECODE | ( sound_out_float ? BASS_SAMPLE_FLOAT : 0 ) | (check_sinc()?BASS_MIDI_SINCINTER: 0), 44100 );
 			if (!hStream) continue;
 			load_settings();
 			if (GetWindowsDirectory(config, 1023 - 16))
@@ -519,6 +621,7 @@ unsigned __stdcall threadfunc(LPVOID lpV){
 				BASS_MIDI_StreamSetFonts( hStream, mf, font_count );
 				free(mf);
 			}
+			reset_drum_channels();
 			SetEvent(load_sfevent);
 			opend = 1;
 			reset_synth = 0;
@@ -529,7 +632,9 @@ unsigned __stdcall threadfunc(LPVOID lpV){
 		Sleep(1);
 		if (reset_synth != 0){
 			reset_synth = 0;
-			BASS_MIDI_StreamEvent( hStream, 0, MIDI_EVENT_SYSTEM, MIDI_SYSTEM_DEFAULT );
+			BASS_MIDI_StreamEvent( hStream, 0, MIDI_EVENT_SYSTEMEX, MIDI_SYSTEM_DEFAULT );
+			reset_drum_channels();
+			synth_mode = synth_mode_gm;
 		}
 		bmsyn_play_some_data();
 		if (sound_out_float) {
@@ -698,7 +803,7 @@ STDAPI_(LONG) modMessage(UINT uDeviceID, UINT uMsg, DWORD dwUser, DWORD dwParam1
 		return MMSYSERR_NOTSUPPORTED;
 		break;
 	case MODM_GETDEVCAPS:
-		return modGetCaps((PVOID)dwParam1, dwParam2);
+		return modGetCaps(uDeviceID, (PVOID)dwParam1, dwParam2);
 		break;
 	case MODM_RESET:
 		DoResetDriver(dwParam1, dwParam2);
@@ -734,6 +839,7 @@ STDAPI_(LONG) modMessage(UINT uDeviceID, UINT uMsg, DWORD dwUser, DWORD dwParam1
 		evbpoint = evbwpoint;
 		if (++evbwpoint >= EVBUFF_SIZE)
 			evbwpoint -= EVBUFF_SIZE;
+		evbuf[evbpoint].uDeviceID = uDeviceID;
 		evbuf[evbpoint].uMsg = uMsg;
 		evbuf[evbpoint].dwParam1 = dwParam1;
 		evbuf[evbpoint].dwParam2 = dwParam2;
@@ -743,7 +849,7 @@ STDAPI_(LONG) modMessage(UINT uDeviceID, UINT uMsg, DWORD dwUser, DWORD dwParam1
 		return MMSYSERR_NOERROR;
 		break;		
 	case MODM_GETNUMDEVS:
-		return 0x1;
+		return 0x2;
 		break;
 	case MODM_CLOSE:
 		return DoCloseDriver(driver, uDeviceID, uMsg, dwUser, dwParam1, dwParam2);

@@ -1,3 +1,6 @@
+3.6
+  winmm driver
+  * implemented dual port support  
 3.5
   winmm driver
   * fixed some bank control change issues
