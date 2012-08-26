@@ -3,10 +3,10 @@
 
 class ds_stream
 {
-protected:
-	ds_stream() {}
-	~ds_stream() {}
 public:
+	ds_stream() {}
+	virtual ~ds_stream() {}
+
 	virtual bool write(const void * data,unsigned bytes)=0;
 	virtual bool is_playing()=0;
 	virtual double get_latency()=0;
@@ -23,7 +23,8 @@ public:
 
 struct ds_stream_config
 {
-	unsigned srate,nch,bps;
+	unsigned srate;
+	unsigned short nch,bps;
 	unsigned buffer_ms;
 	
 	ds_stream_config()
@@ -35,7 +36,7 @@ class ds_api
 {
 protected:
 	ds_api() {}
-	~ds_api() {}
+	virtual ~ds_api() {}
 public:
 	virtual ds_stream * ds_stream_create(const ds_stream_config * cfg)=0;
 	virtual void set_device(const GUID * id)=0;

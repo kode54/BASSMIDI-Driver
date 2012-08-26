@@ -2,4 +2,3 @@ LIBRARY      "bassmididrv.dll"
 EXPORTS
 	DriverProc PRIVATE
 	modMessage PRIVATE
-	midMessage PRIVATE

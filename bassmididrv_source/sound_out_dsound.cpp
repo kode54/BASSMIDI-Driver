@@ -1,3 +1,8 @@
+#define STRICT
+#ifndef _WIN32_WINNT
+#define _WIN32_WINNT _WIN32_WINNT_WINXP
+#endif
+
 #include <windows.h>
 
 #include "sound_out.h"
@@ -11,7 +16,8 @@ class sound_out_i_dsound : public sound_out
 
 	bool        paused;
 
-	unsigned    sample_rate, nch, max_samples_per_frame, num_frames, bytes_per_sample, buffer_size_bytes, last_write;
+	unsigned    sample_rate, max_samples_per_frame, num_frames, bytes_per_sample, buffer_size_bytes, last_write;
+	unsigned short nch;
 
 public:
 	sound_out_i_dsound()
@@ -26,7 +32,7 @@ public:
 		close();
 	}
 
-	virtual const char* open( void * hwnd, unsigned sample_rate, unsigned nch, bool floating_point, unsigned max_samples_per_frame, unsigned num_frames )
+	virtual const char* open( void * hwnd, unsigned sample_rate, unsigned short nch, bool floating_point, unsigned max_samples_per_frame, unsigned num_frames )
 	{
 		p_api = ds_api_create( (HWND) hwnd );
 		if ( !p_api )
@@ -78,7 +84,7 @@ public:
 			return 0;
 		}
 
-		int buffer_size_write = (int) num_samples * bytes_per_sample;
+		unsigned int buffer_size_write = num_samples * bytes_per_sample;
 
 		if ( wait )
 		{

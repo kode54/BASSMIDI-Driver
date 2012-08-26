@@ -7,6 +7,8 @@
 /bassmididrv_source/Release
 /bassmididrv_source/Debug
 /bassmididrv_source/out
+/bassmididrv_source/*.dll
+/bassmididrv_source/*.exe
 /drivercfg/*.opensdf
 /drivercfg/*.sdf
 /drivercfg/*.vcxproj.user
@@ -15,6 +17,8 @@
 /drivercfg/ipch
 /drivercfg/Release
 /drivercfg/Debug
+/drivercfg/*.dll
+/drivercfg/*.exe
 /sfpacker/*.opensdf
 /sfpacker/*.sdf
 /sfpacker/*.vcxproj.user
@@ -23,6 +27,7 @@
 /sfpacker/ipch
 /sfpacker/Release
 /sfpacker/Debug
-*.dll
-*.exe
+/sfpacker/*.dll
+/sfpacker/*.exe
+/output/
 git_ver.h

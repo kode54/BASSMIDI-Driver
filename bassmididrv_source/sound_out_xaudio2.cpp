@@ -1,8 +1,12 @@
+#define STRICT
+#ifndef _WIN32_WINNT
+#define _WIN32_WINNT _WIN32_WINNT_WINXP
+#endif
+
 #include "sound_out.h"
 
 //#define HAVE_KS_HEADERS
 
-#define STRICT
 #include <stdint.h>
 #include <windows.h>
 #include <XAudio2.h>
@@ -13,6 +17,7 @@
 #include <ks.h>
 #include <ksmedia.h>
 #endif
+
 
 #pragma comment ( lib, "winmm.lib" )
 
@@ -71,7 +76,7 @@ public:
 		if ( flow == eRender )
 		{
 			EnterCriticalSection( &lock );
-			for ( auto it = instances.begin(); it < instances.end(); ++it )
+			for ( std::vector<sound_out_i_xaudio2*>::iterator it = instances.begin(); it < instances.end(); ++it )
 			{
 				xaudio2_device_changed( *it );
 			}
@@ -118,7 +123,7 @@ public:
 		}
 
 		EnterCriticalSection( &lock );
-		for ( auto it = instances.begin(); it < instances.end(); ++it )
+		for ( std::vector<sound_out_i_xaudio2*>::iterator it = instances.begin(); it < instances.end(); ++it )
 		{
 			if ( *it == p_instance )
 			{
@@ -177,7 +182,8 @@ class sound_out_i_xaudio2 : public sound_out
 	bool            paused;
 	volatile bool   device_changed;
 	unsigned        reopen_count;
-	unsigned        sample_rate, nch, bytes_per_sample, max_samples_per_frame, num_frames;
+	unsigned        sample_rate, bytes_per_sample, max_samples_per_frame, num_frames;
+	unsigned short  nch;
 	volatile LONG   buffered_count;
 	volatile LONG   buffer_read_cursor;
 	LONG            buffer_write_cursor;
@@ -221,7 +227,7 @@ public:
 		device_changed = true;
 	}
 
-	virtual const char* open( void * hwnd, unsigned sample_rate, unsigned nch, bool floating_point, unsigned max_samples_per_frame, unsigned num_frames )
+	virtual const char* open( void * hwnd, unsigned sample_rate, unsigned short nch, bool floating_point, unsigned max_samples_per_frame, unsigned num_frames )
 	{
 		this->hwnd = hwnd;
 		this->sample_rate = sample_rate;
@@ -421,13 +427,13 @@ public:
 
 	virtual const char* set_volume( double volume )
 	{
-		if ( !reopen_count && FAILED( mVoice->SetVolume( volume ) ) ) return "setting volume";
+		if ( !reopen_count && FAILED( mVoice->SetVolume( static_cast<float>(volume) ) ) ) return "setting volume";
 		return 0;
 	}
 
 	virtual const char* set_ratio( double ratio )
 	{
-		if ( !reopen_count && FAILED( sVoice->SetFrequencyRatio( ratio ) ) ) return "setting ratio";
+		if ( !reopen_count && FAILED( sVoice->SetFrequencyRatio( static_cast<float>(ratio) ) ) ) return "setting ratio";
 		return 0;
 	}
 

@@ -68,13 +68,13 @@ Section "Needed (required)"
    DetailPrint "Copying driver and synth..."
    ${If} ${RunningX64}
    SetOutPath "$WINDIR\SysWow64\bassmididrv"
-   File bass.dll 
-   File bassflac.dll
-   File basswv.dll
-   File bassopus.dll   
-   File bass_mpc.dll 
-   File bassmidi.dll 
-   File bassmididrv.dll 
+   File output\bass.dll 
+   File output\bassflac.dll
+   File output\basswv.dll
+   File output\bassopus.dll   
+   File output\bass_mpc.dll 
+   File output\bassmidi.dll 
+   File output\bassmididrv.dll 
    File bassmididrvcfg.exe
    File sfpacker.exe
    ;check if already installed
@@ -98,13 +98,13 @@ NEXT1:
   StrCmp $1 "9" 0 LOOP1
    ${Else}
    SetOutPath "$WINDIR\System32\bassmididrv"
-   File bass.dll 
-   File bassflac.dll
-   File basswv.dll
-   File bassopus.dll
-   File bass_mpc.dll 
-   File bassmidi.dll 
-   File bassmididrv.dll 
+   File output\bass.dll 
+   File output\bassflac.dll
+   File output\basswv.dll
+   File output\bassopus.dll   
+   File output\bass_mpc.dll 
+   File output\bassmidi.dll 
+   File output\bassmididrv.dll 
    File bassmididrvcfg.exe
    File sfpacker.exe
    ;check if already installed

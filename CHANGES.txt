@@ -1,3 +1,6 @@
+3.8
+  winmm driver
+  * 64-bit support, volume control, and general restructuring by [JAZ]
 3.7
   winmm driver
   * fixed volume control

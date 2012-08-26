@@ -12,8 +12,8 @@
 #define BASSMIDIDEF(f) (WINAPI *f)
 #define LOADBASSFUNCTION(f) *((void**)&f)=GetProcAddress(bass,#f)
 #define LOADBASSMIDIFUNCTION(f) *((void**)&f)=GetProcAddress(bassmidi,#f)
-#include "../bass.h"
-#include "../bassmidi.h"
+#include "../external_packages/bass.h"
+#include "../external_packages/bassmidi.h"
 
 using namespace std;
 using namespace utf8util;
