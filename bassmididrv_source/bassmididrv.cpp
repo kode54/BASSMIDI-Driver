@@ -307,18 +307,9 @@ HRESULT modGetCaps(UINT uDeviceID, MIDIOUTCAPS* capsPtr, DWORD capsSize) {
 	MIDIOUTCAPSW * myCapsW;
 	MIDIOUTCAPS2A * myCaps2A;
 	MIDIOUTCAPS2W * myCaps2W;
-#if defined(AMD64)
-	 // WinDDK
-	CHAR synthName[] = "BASSMIDI Driver 64";
-	WCHAR synthNameW[] = L"BASSMIDI Driver 64";
-#elif defined(_WIN64)
-	//VisualStudio
-	CHAR synthName[] = "BASSMIDI Driver 64";
-	WCHAR synthNameW[] = L"BASSMIDI Driver 64";
-#else
 	CHAR synthName[] = "BASSMIDI Driver";
 	WCHAR synthNameW[] = L"BASSMIDI Driver";
-#endif
+
 	CHAR synthPortA[] = " (port A)\0";
 	WCHAR synthPortAW[] = L" (port A)\0";
 

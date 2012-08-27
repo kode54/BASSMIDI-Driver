@@ -85,7 +85,6 @@ Section "Needed (required)"
    File output\64\bass_mpc.dll
    File output\64\bassmidi.dll
    File output\64\bassmididrv.dll
-   File output\64\bassmididrvcfg.exe
    ;check if already installed
    StrCpy  $1 "0"
 LOOP1:
@@ -172,7 +171,6 @@ REGDONE:
    CreateShortCut "$SMPROGRAMS\BASSMIDI System Synth\Uninstall.lnk" "$WINDIR\SysWow64\bassmididrv\bassmididrvuninstall.exe" "" "$WINDIR\SysWow64\bassmididrvuninstall.exe" 0
    CreateShortCut "$SMPROGRAMS\BASSMIDI System Synth\SoundFont Packer.lnk" "$WINDIR\SysWow64\bassmididrv\sfpacker.exe" "" "$WINDIR\SysWow64\sfpacker.exe" 0
    CreateShortCut "$SMPROGRAMS\BASSMIDI System Synth\Configure BASSMIDI Driver.lnk" "$WINDIR\SysWow64\bassmididrv\bassmididrvcfg.exe" "" "$WINDIR\SysWow64\bassmididrv\bassmididrvcfg.exe" 0
-   CreateShortCut "$SMPROGRAMS\BASSMIDI System Synth\Configure BASSMIDI Driver (64-bit).lnk" "$WINDIR\System32\bassmididrv\bassmididrvcfg.exe" "" "$WINDIR\System32\bassmididrv\bassmididrvcfg.exe" 0
    ${Else}
    WriteUninstaller "$WINDIR\System32\bassmididrvuninstall.exe"
    WriteRegStr HKLM "Software\BASSMIDI Driver" "path" "$WINDIR\System32\bassmididrv"

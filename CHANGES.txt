@@ -1,3 +1,6 @@
+3.10
+  installer/driver
+  * removed 64-bit configuration tool and unified driver name across platforms
 3.9
   installer
   * installs 64-bit driver and configuration tool on 64-bit systems
