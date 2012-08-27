@@ -567,7 +567,7 @@ void load_settings()
 	long lResult;
 	DWORD dwType=REG_DWORD;
 	DWORD dwSize=sizeof(DWORD);
-	lResult = RegOpenKeyEx(HKEY_LOCAL_MACHINE, L"Software\\BASSMIDI Driver", 0, KEY_READ, &hKey);
+	lResult = RegOpenKeyEx(HKEY_LOCAL_MACHINE, L"Software\\BASSMIDI Driver", 0, KEY_READ | KEY_WOW64_32KEY, &hKey);
 	RegQueryValueEx(hKey, L"volume", NULL, &dwType,(LPBYTE)&config_volume, &dwSize);
 	RegCloseKey( hKey);
 	sound_out_volume_float = (float)config_volume / 10000.0f;
@@ -580,7 +580,7 @@ int check_sinc()
 	long lResult;
 	DWORD dwType=REG_DWORD;
 	DWORD dwSize=sizeof(DWORD);
-	lResult = RegOpenKeyEx(HKEY_LOCAL_MACHINE, L"Software\\BASSMIDI Driver", 0, KEY_READ, &hKey);
+	lResult = RegOpenKeyEx(HKEY_LOCAL_MACHINE, L"Software\\BASSMIDI Driver", 0, KEY_READ | KEY_WOW64_32KEY, &hKey);
 	RegQueryValueEx(hKey, L"sinc", NULL, &dwType,(LPBYTE)&sinc, &dwSize);
 	RegCloseKey( hKey);
 	return sinc;

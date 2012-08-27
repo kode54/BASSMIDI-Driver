@@ -398,7 +398,7 @@ public:
 		DWORD volume;
 		DWORD sinc;
 		CRegKeyEx reg;
-		lResult = reg.Create(HKEY_LOCAL_MACHINE, L"Software\\BASSMIDI Driver");
+		lResult = reg.Create(HKEY_LOCAL_MACHINE, L"Software\\BASSMIDI Driver", 0, REG_OPTION_NON_VOLATILE, KEY_READ | KEY_WOW64_32KEY);
 		reg.QueryDWORDValue( L"volume",volume);
 		reg.QueryDWORDValue( L"sinc",sinc);
 		reg.Close();
@@ -413,7 +413,7 @@ public:
 	   HKEY hKey, hSubKey;
 	   long lResult;
 	   CRegKeyEx reg;
-	   lResult = reg.Create(HKEY_LOCAL_MACHINE, L"Software\\BASSMIDI Driver");
+	   lResult = reg.Create(HKEY_LOCAL_MACHINE, L"Software\\BASSMIDI Driver", 0, REG_OPTION_NON_VOLATILE, KEY_WRITE | KEY_WOW64_32KEY);
 	   lResult = reg.SetDWORDValue(L"volume",volume);
 	   lResult = reg.SetDWORDValue(L"sinc",sinc);
 

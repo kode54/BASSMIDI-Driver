@@ -1,3 +1,10 @@
+3.9
+  installer
+  * installs 64-bit driver and configuration tool on 64-bit systems
+  config tool
+  * always reads and writes settings from 32-bit keys
+  winmm driver
+  * always reads settings from the 32-bit registry keys
 3.8
   winmm driver
   * 64-bit support, volume control, and general restructuring by [JAZ]
