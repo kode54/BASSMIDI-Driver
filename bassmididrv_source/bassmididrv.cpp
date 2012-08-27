@@ -46,7 +46,7 @@ void _endthreadex( unsigned retval );
 */
 #define SAMPLES_PER_FRAME 128
 #define FRAMES_XAUDIO 20
-#define FRAMES_DSOUND 35
+#define FRAMES_DSOUND 50
 #define SAMPLE_RATE_USED 44100
 
 
