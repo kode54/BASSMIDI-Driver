@@ -1,3 +1,6 @@
+3.12
+  winmm driver
+  * hopefully fixed event buffering
 3.11
   winmm driver
   * increased directsound latency

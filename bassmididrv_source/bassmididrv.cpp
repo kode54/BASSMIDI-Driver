@@ -392,12 +392,13 @@ struct evbuf_t{
 static struct evbuf_t evbuf[EVBUFF_SIZE];
 static UINT  evbwpoint=0;
 static UINT  evbrpoint=0;
+static volatile LONG evbcount=0;
 static UINT evbsysexpoint;
 
 int bmsyn_buf_check(void){
 	int retval;
 	EnterCriticalSection(&mim_section);
-	retval = (evbrpoint != evbwpoint) ? ~0 :  0;
+	retval = evbcount;
 	LeaveCriticalSection(&mim_section);
 	return retval;
 }
@@ -547,7 +548,7 @@ int bmsyn_play_some_data(void){
 				free(sysexbuffer);
 				break;
 			}
-		}while(bmsyn_buf_check());	
+		}while(InterlockedDecrement(&evbcount));
 	return played;
 }
 
@@ -923,6 +924,12 @@ most drivers, this behavior is sufficient.*/
 		evbuf[evbpoint].exlen=exlen;
 		evbuf[evbpoint].sysexbuffer=sysexbuffer;
 		LeaveCriticalSection(&mim_section);
+		if (InterlockedIncrement(&evbcount)>=EVBUFF_SIZE) {
+			do 
+			{
+				Sleep(1);
+			} while (evbcount >= EVBUFF_SIZE);			
+		}
 		return MMSYSERR_NOERROR;
 
 	case MODM_GETVOLUME : {
