@@ -19,8 +19,9 @@ class CMainDlg : public CDialogImpl<CMainDlg>, public CUpdateUI<CMainDlg>,
 public:
 	enum { IDD = IDD_MAINDLG };
 	CDialogTabCtrl m_ctrlTab;
-	CView1 m_view1;
-	CView2 m_view2;
+	CView1<false> m_view1;
+	CView1<true> m_view2;
+	CView2 m_view3;
 
 	virtual BOOL PreTranslateMessage(MSG* pMsg)
 	{
@@ -61,12 +62,15 @@ public:
 		m_ctrlTab.SubclassWindow(GetDlgItem(IDC_TAB));
 		m_view1.Create(m_hWnd);
 		m_view2.Create(m_hWnd);
+		m_view3.Create(m_hWnd);
 		TCITEM tci = { 0 };
 		tci.mask = TCIF_TEXT;
-		tci.pszText = _T("SoundFonts");
+		tci.pszText = _T("SoundFonts (port A)");
 		m_ctrlTab.InsertItem(0, &tci, m_view1);
-		tci.pszText = _T("Advanced");
+		tci.pszText = _T("SoundFonts (port B)");
 		m_ctrlTab.InsertItem(1, &tci, m_view2);
+		tci.pszText = _T("Advanced");
+		m_ctrlTab.InsertItem(2, &tci, m_view3);
 		m_ctrlTab.SetCurSel(0);
 
 		// register object for message filtering and idle updates

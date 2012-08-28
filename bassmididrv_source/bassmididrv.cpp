@@ -16,6 +16,7 @@ void _endthreadex( unsigned retval );
 #endif
 
 #define _CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES 1 
+#include <assert.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -72,15 +73,15 @@ static volatile int modm_closed = 1;
 
 static CRITICAL_SECTION mim_section;
 static volatile int stop_thread = 0;
-static volatile int reset_synth = 0;
+static volatile int reset_synth[2] = {0, 0};
 static HANDLE hCalcThread = NULL;
 static DWORD processPriority;
 static HANDLE load_sfevent = NULL; 
 
 
-static unsigned int font_count = 0;
-static HSOUNDFONT * hFonts = NULL;
-static HSTREAM hStream = 0;
+static unsigned int font_count[2] = { 0, 0 };
+static HSOUNDFONT * hFonts[2] = { NULL, NULL };
+static HSTREAM hStream[2] = {0, 0};
 
 static BOOL com_initialized = FALSE;
 static BOOL sound_out_float = FALSE;
@@ -91,18 +92,6 @@ static HINSTANCE bass = 0;			// bass handle
 static HINSTANCE bassmidi = 0;			// bassmidi handle
 //TODO: Can be done with: HMODULE GetDriverModuleHandle(HDRVR hdrvr);  (once DRV_OPEN has been called)
 static HINSTANCE hinst = NULL;             //main DLL handle
-
-enum {
-	synth_mode_gm = 0,
-	synth_mode_gm2,
-	synth_mode_gs,
-	synth_mode_xg
-};
-
-static unsigned int synth_mode = synth_mode_gm;
-
-static unsigned char gs_part_to_ch[2][16];
-static unsigned char drum_channels[32];
 
 static void DoStopClient();
 
@@ -117,22 +106,22 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved ){
 	return TRUE;    
 }
 
-static void FreeFonts()
+static void FreeFonts(UINT uDeviceID)
 {
 	unsigned i;
-	if ( hFonts && font_count )
+	if ( hFonts[ uDeviceID ] && font_count[ uDeviceID ] )
 	{
-		for ( i = 0; i < font_count; ++i )
+		for ( i = 0; i < font_count[ uDeviceID ]; ++i )
 		{
-			BASS_MIDI_FontFree( hFonts[ i ] );
+			BASS_MIDI_FontFree( hFonts[ uDeviceID ][ i ] );
 		}
-		free( hFonts );
-		hFonts = NULL;
-		font_count = 0;
+		free( hFonts[ uDeviceID ] );
+		hFonts[ uDeviceID ] = NULL;
+		font_count[ uDeviceID ] = 0;
 	}
 }
 
-void LoadFonts(const TCHAR * name)
+void LoadFonts(UINT uDeviceID, const TCHAR * name)
 {
 	const DWORD bass_flags =
 #ifdef UNICODE
@@ -142,7 +131,7 @@ void LoadFonts(const TCHAR * name)
 #endif
 		;
 
-	FreeFonts();
+	FreeFonts(uDeviceID);
 
 	if (name && *name)
 	{
@@ -150,14 +139,14 @@ void LoadFonts(const TCHAR * name)
 		if ( ext ) ext++;
 		if ( !_tcsicmp( ext, _T("sf2") ) || !_tcsicmp( ext, _T("sf2pack") ) )
 		{
-			font_count = 1;
-			hFonts = (HSOUNDFONT*)malloc( sizeof(HSOUNDFONT) );
-			*hFonts = BASS_MIDI_FontInit( name, bass_flags );
+			font_count[ uDeviceID ] = 1;
+			hFonts[ uDeviceID ] = (HSOUNDFONT*)malloc( sizeof(HSOUNDFONT) );
+			*hFonts[ uDeviceID ] = BASS_MIDI_FontInit( name, bass_flags );
 		}
 		else if ( !_tcsicmp( ext, _T("sflist") ) )
 		{
 			FILE * fl = _tfopen( name, _T("r, ccs=UTF-8") );
-			font_count = 0;
+			font_count[ uDeviceID ] = 0;
 			if ( fl )
 			{
 				TCHAR path[MAX_PATH], fontname[MAX_PATH], temp[MAX_PATH];
@@ -183,9 +172,9 @@ void LoadFonts(const TCHAR * name)
 						_tcscat( temp, fontname );
 						cr = temp;
 					}
-					font_count++;
-					hFonts = (HSOUNDFONT*)realloc( hFonts, sizeof(HSOUNDFONT) * font_count );
-					hFonts[ font_count - 1 ] = BASS_MIDI_FontInit( cr, bass_flags );
+					font_count[ uDeviceID ]++;
+					hFonts[ uDeviceID ] = (HSOUNDFONT*)realloc( hFonts[ uDeviceID ], sizeof(HSOUNDFONT) * font_count[ uDeviceID ] );
+					hFonts[ uDeviceID ][ font_count[ uDeviceID ] - 1 ] = BASS_MIDI_FontInit( cr, bass_flags );
 				}
 				fclose( fl );
 			}
@@ -420,34 +409,11 @@ static BOOL is_gs_reset(const unsigned char * data, unsigned size)
 	return TRUE;
 }
 
-void reset_drum_channels()
-{
-	static const BYTE part_to_ch[16] = { 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15 };
-
-	memset( drum_channels, 0, sizeof( drum_channels ) );
-	drum_channels[ 9 ] = 1;
-	drum_channels[ 25 ] = 1;
-
-	for ( unsigned i = 0; i < 2; i++ )
-	{
-		memcpy( gs_part_to_ch[i], part_to_ch, sizeof( gs_part_to_ch[i] ) );
-	}
-
-	if ( hStream )
-	{
-		for ( unsigned i = 0; i < 32; ++i )
-		{
-			BASS_MIDI_StreamEvent( hStream, i, MIDI_EVENT_DRUMS, drum_channels[ i ] );
-		}
-	}
-}
-
 int bmsyn_play_some_data(void){
 	UINT uDeviceID;
 	UINT uMsg;
 	DWORD_PTR	dwParam1;
 	DWORD_PTR   dwParam2;
-	DWORD   dwChannel;
 	
 	UINT evbpoint;
 	int exlen;
@@ -476,30 +442,8 @@ int bmsyn_play_some_data(void){
 			switch (uMsg) {
 			case MODM_DATA:
 				dwParam2 = dwParam1 & 0xF0;
-				dwChannel = (dwParam1 & 0x0F) + (uDeviceID ? 16 : 0);
 				exlen = ( dwParam2 == 0xC0 || dwParam2 == 0xD0 ) ? 2 : 3;
-				BASS_MIDI_StreamEvents( hStream, BASS_MIDI_EVENTS_RAW + 1 + dwChannel, &dwParam1, exlen );
-				if ( dwParam2 == 0xB0 && ( dwParam1 & 0xFF00 ) == 0 )
-				{
-					if ( synth_mode == synth_mode_xg )
-					{
-						if ( ( dwParam1 & 0xFF0000 ) == ( 127 << 16 ) ) drum_channels[ dwChannel ] = 1;
-						else drum_channels[ dwChannel ] = 0;
-					}
-					else if ( synth_mode == synth_mode_gm2 )
-					{
-						if ( ( dwParam1 & 0xFF0000 ) == ( 120 << 16 ) ) drum_channels[ dwChannel ] = 1;
-						else if ( ( dwParam1 & 0xFF0000 ) == ( 121 << 16 ) ) drum_channels[ dwChannel ] = 0;
-					}
-				}
-				else if ( dwParam2 == 0xC0 )
-				{
-					unsigned channel_masked = dwChannel & 0x0F;
-					unsigned drum_channel = drum_channels[ dwChannel ];
-					if ( ( channel_masked == 9 && !drum_channel ) ||
-						( channel_masked != 9 && drum_channel ) )
-						BASS_MIDI_StreamEvent( hStream, dwChannel, MIDI_EVENT_DRUMS, drum_channel );
-				}
+				BASS_MIDI_StreamEvents( hStream[uDeviceID], BASS_MIDI_EVENTS_RAW, &dwParam1, exlen );
 				break;
 			case MODM_LONGDATA:
 #ifdef DEBUG
@@ -512,39 +456,7 @@ int bmsyn_play_some_data(void){
 	}
 	fclose(logfile);
 #endif
-				BASS_MIDI_StreamEvents( hStream, BASS_MIDI_EVENTS_RAW, sysexbuffer, exlen );
-				if ( ( exlen == _countof( sysex_gm_reset ) && !memcmp( sysexbuffer, sysex_gm_reset, _countof( sysex_gm_reset ) ) ) ||
-					( exlen == _countof( sysex_gm2_reset ) && !memcmp( sysexbuffer, sysex_gm2_reset, _countof( sysex_gm2_reset ) ) ) ||
-					is_gs_reset( sysexbuffer, exlen ) ||
-					( exlen == _countof( sysex_xg_reset ) && !memcmp( sysexbuffer, sysex_xg_reset, _countof( sysex_xg_reset ) ) ) )
-				{
-					reset_drum_channels();
-					synth_mode = ( exlen == _countof( sysex_xg_reset ) ) ? synth_mode_xg :
-					             ( exlen == _countof( sysex_gs_reset ) ) ? synth_mode_gs :
-					       ( sysexbuffer [4] == 0x01 )                   ? synth_mode_gm :
-					                                                       synth_mode_gm2;
-				}
-				else if ( synth_mode == synth_mode_gs && exlen == 11 &&
-					sysexbuffer [0] == 0xF0 && sysexbuffer [1] == 0x41 && sysexbuffer [3] == 0x42 &&
-					sysexbuffer [4] == 0x12 && sysexbuffer [5] == 0x40 && (sysexbuffer [6] & 0xF0) == 0x10 &&
-					sysexbuffer [10] == 0xF7)
-				{
-					if (sysexbuffer [7] == 2)
-					{
-						// GS MIDI channel to part assign
-						gs_part_to_ch [ uDeviceID & 1 ][ sysexbuffer [6] & 15 ] = sysexbuffer [8];
-					}
-					else if ( sysexbuffer [7] == 0x15 )
-					{
-						// GS part to rhythm allocation
-						unsigned int drum_channel = gs_part_to_ch [ uDeviceID & 1 ][ sysexbuffer [6] & 15 ];
-						if ( drum_channel < 16 )
-						{
-							if ( uDeviceID ) drum_channel += 16;
-							drum_channels [ drum_channel ] = sysexbuffer [8];
-						}
-					}
-				}
+				BASS_MIDI_StreamEvents( hStream[uDeviceID], BASS_MIDI_EVENTS_RAW, sysexbuffer, exlen );
 				free(sysexbuffer);
 				break;
 			}
@@ -641,6 +553,7 @@ unsigned __stdcall threadfunc(LPVOID lpV){
 	unsigned i;
 	int opend=0;
 	TCHAR config[MAX_PATH];
+	TCHAR configb[MAX_PATH];
 	BASS_MIDI_FONT * mf;
 
 	while(opend == 0 && stop_thread == 0) {
@@ -667,63 +580,107 @@ unsigned __stdcall threadfunc(LPVOID lpV){
 		BASS_SetConfig(BASS_CONFIG_UPDATEPERIOD, 0);
 		BASS_SetConfig(BASS_CONFIG_UPDATETHREADS, 0);
 		if ( BASS_Init( 0, SAMPLE_RATE_USED, 0, GetDesktopWindow(), NULL ) ) {
-			hStream = BASS_MIDI_StreamCreate( 32, BASS_STREAM_DECODE | ( sound_out_float ? BASS_SAMPLE_FLOAT : 0 ) | (check_sinc()?BASS_MIDI_SINCINTER: 0), SAMPLE_RATE_USED );
-			if (!hStream) continue;
-			BASS_MIDI_StreamEvent( hStream, 0, MIDI_EVENT_SYSTEMEX, MIDI_SYSTEM_GM1 );
+			hStream[0] = BASS_MIDI_StreamCreate( 16, BASS_STREAM_DECODE | ( sound_out_float ? BASS_SAMPLE_FLOAT : 0 ) | (check_sinc()?BASS_MIDI_SINCINTER: 0), SAMPLE_RATE_USED );
+			if (!hStream[0]) continue;
+			hStream[1] = BASS_MIDI_StreamCreate( 16, BASS_STREAM_DECODE | ( sound_out_float ? BASS_SAMPLE_FLOAT : 0 ) | (check_sinc()?BASS_MIDI_SINCINTER: 0), SAMPLE_RATE_USED );
+			if (!hStream[1]) {
+				BASS_StreamFree(hStream[0]);
+				hStream[0] = 0;
+				continue;
+			}
+			BASS_MIDI_StreamEvent( hStream[0], 0, MIDI_EVENT_SYSTEM, MIDI_SYSTEM_DEFAULT );
+			BASS_MIDI_StreamEvent( hStream[1], 0, MIDI_EVENT_SYSTEM, MIDI_SYSTEM_DEFAULT );
 			load_settings();
 			if (GetWindowsDirectory(config, MAX_PATH))
 			{
+				_tcscpy( configb, config );
 				_tcscat( config, _T("\\bassmidi.sflist") );
+				_tcscat( configb, _T("\\bassmidi_b.sflist") );
 			}
-			LoadFonts(config);
-			if (font_count) {
-				mf = (BASS_MIDI_FONT*)malloc( sizeof(BASS_MIDI_FONT) * font_count );
-				for ( i = 0; i < font_count; ++i ) {
-					mf[i].font = hFonts[ font_count - i - 1 ];
+			LoadFonts(0, config);
+			LoadFonts(1, configb);
+			if (font_count[ 0 ]) {
+				mf = (BASS_MIDI_FONT*)malloc( sizeof(BASS_MIDI_FONT) * font_count[ 0 ] );
+				for ( i = 0; i < font_count[ 0 ]; ++i ) {
+					mf[i].font = hFonts[ 0 ][ font_count[ 0 ] - i - 1 ];
 					mf[i].preset = -1;
 					mf[i].bank = 0;
 				}
-				BASS_MIDI_StreamSetFonts( hStream, mf, font_count );
+				BASS_MIDI_StreamSetFonts( hStream[ 0 ], mf, font_count[ 0 ] );
 				free(mf);
 			}
-			reset_drum_channels();
+			if (font_count[ 1 ]) {
+				mf = (BASS_MIDI_FONT*)malloc( sizeof(BASS_MIDI_FONT) * font_count[ 1 ] );
+				for ( i = 0; i < font_count[ 1 ]; ++i ) {
+					mf[i].font = hFonts[ 1 ][ font_count[ 1 ] - i - 1 ];
+					mf[i].preset = -1;
+					mf[i].bank = 0;
+				}
+				BASS_MIDI_StreamSetFonts( hStream[ 1 ], mf, font_count[ 1 ] );
+				free(mf);
+			}
 			SetEvent(load_sfevent);
 			opend = 1;
-			reset_synth = 0;
+			reset_synth[0] = 0;
+			reset_synth[1] = 0;
 		}
 	}
 
 	while(stop_thread == 0){
 		Sleep(1);
-		if (reset_synth != 0){
-			reset_synth = 0;
+		if (reset_synth[ 0 ] != 0){
+			reset_synth[ 0 ] = 0;
 			load_settings();
 			sound_driver->set_volume( sound_out_volume_float );
-			BASS_MIDI_StreamEvent( hStream, 0, MIDI_EVENT_SYSTEMEX, MIDI_SYSTEM_DEFAULT );
-			reset_drum_channels();
-			synth_mode = synth_mode_gm;
+			BASS_MIDI_StreamEvent( hStream[ 0 ], 0, MIDI_EVENT_SYSTEM, MIDI_SYSTEM_DEFAULT );
+		}
+		if (reset_synth[ 1 ] != 0){
+			reset_synth[ 1 ] = 0;
+			load_settings();
+			sound_driver->set_volume( sound_out_volume_float );
+			BASS_MIDI_StreamEvent( hStream[ 1 ], 0, MIDI_EVENT_SYSTEM, MIDI_SYSTEM_DEFAULT );
 		}
 		bmsyn_play_some_data();
 		if (sound_out_float) {
-			float sound_buffer[SAMPLES_PER_FRAME];
-			int decoded = BASS_ChannelGetData( hStream, sound_buffer, BASS_DATA_FLOAT + SAMPLES_PER_FRAME * sizeof(float) );
-			if ( decoded < 0 ) Sleep(1);
-			else sound_driver->write_frame( sound_buffer, decoded / sizeof(float), true );
+			float sound_buffer[2][SAMPLES_PER_FRAME];
+			int decoded = BASS_ChannelGetData( hStream[ 0 ], sound_buffer[0], BASS_DATA_FLOAT + SAMPLES_PER_FRAME * sizeof(float) );
+			int decoded2 = BASS_ChannelGetData( hStream[ 1 ], sound_buffer[1], BASS_DATA_FLOAT + SAMPLES_PER_FRAME * sizeof(float) );
+			if ( decoded < 0 || decoded2 < 0 ) Sleep(1);
+			else {
+				assert( decoded == decoded2 );
+				for ( unsigned i = 0, j = decoded / sizeof(float); i < j; i++ ) sound_buffer[ 0 ][ i ] += sound_buffer[ 1 ][ i ];
+				sound_driver->write_frame( sound_buffer[ 0 ], decoded / sizeof(float), true );
+			}
 		} else {
-			short sound_buffer[SAMPLES_PER_FRAME];
-			int decoded = BASS_ChannelGetData( hStream, sound_buffer, SAMPLES_PER_FRAME * sizeof(short) );
-			if ( decoded < 0 ) Sleep(1);
-			else sound_driver->write_frame( sound_buffer, decoded / sizeof(short), true );
+			short sound_buffer[2][SAMPLES_PER_FRAME];
+			int decoded = BASS_ChannelGetData( hStream[ 0 ], sound_buffer[0], SAMPLES_PER_FRAME * sizeof(short) );
+			int decoded2 = BASS_ChannelGetData( hStream[ 1 ], sound_buffer[1], SAMPLES_PER_FRAME * sizeof(short) );
+			if ( decoded < 0 || decoded2 < 0 ) Sleep(1);
+			else {
+				assert( decoded == decoded2 );
+				for ( unsigned i = 0, j = decoded / sizeof(short); i < j; i++ ) {
+					int sample = sound_buffer[ 0 ][ i ] + sound_buffer[ 1 ][ i ];
+					if ( ( sample + 0x8000 ) & 0xFFFF0000 ) sample = 0x7FFF ^ ( sample >> 31 );
+					sound_buffer[ 0 ][ i ] = sample;
+				}
+				sound_driver->write_frame( sound_buffer[ 0 ], decoded / sizeof(short), true );
+			}
 		}
 	}
 	stop_thread=0;
-	if (hStream)
+	if (hStream[ 1 ])
 	{
-		BASS_StreamFree( hStream );
-		hStream = 0;
+		BASS_StreamFree( hStream[ 1 ] );
+		hStream[ 1 ] = 0;
+	}
+	if (hStream[ 0 ])
+	{
+		BASS_StreamFree( hStream[ 0 ] );
+		hStream[ 0 ] = 0;
 	}
 	if (bassmidi) {
-		FreeFonts();
+		FreeFonts(1);
+		FreeFonts(0);
 		FreeLibrary(bassmidi);
 		bassmidi =0 ;
 	}
@@ -785,14 +742,14 @@ void DoStopClient() {
 	DeleteCriticalSection(&mim_section);
 }
 
-void DoResetClient() {
+void DoResetClient(UINT uDeviceID) {
 	/*
 	TODO : If the driver's output queue contains any output buffers (see MODM_LONGDATA) whose contents
 have not been sent to the kernel-mode driver, the driver should set the MHDR_DONE flag and
 clear the MHDR_INQUEUE flag in each buffer's MIDIHDR structure, and then send the client a
 MOM_DONE callback message for each buffer.	
 	*/
-	reset_synth = 1;
+	reset_synth[!!uDeviceID] = 1;
 }
 
 LONG DoOpenClient(struct Driver *driver, UINT uDeviceID, LONG* dwUser, MIDIOPENDESC * desc, DWORD flags) {
@@ -808,7 +765,7 @@ CALLBACK_WINDOW Indicates dwCallback member of MIDIOPENDESC is a window handle.
 	if (driver->clientCount == 0) {
 		//TODO: Part of this might be done in DoDriverOpen instead.
 		DoStartClient();
-		DoResetClient();
+		DoResetClient(uDeviceID);
 		clientNum = 0;
 	} else if (driver->clientCount == MAX_CLIENTS) {
 		return MMSYSERR_ALLOCATED;
@@ -853,7 +810,7 @@ the client.
 	driver->clients[dwUser].allocated = 0;
 	driver->clientCount--;
 	if(driver->clientCount <= 0) {
-		DoResetClient();
+		DoResetClient(uDeviceID);
 		driver->clientCount = 0;
 	}
 	DoCallback(uDeviceID, dwUser, MOM_CLOSE, 0, 0);
@@ -918,6 +875,7 @@ most drivers, this behavior is sufficient.*/
 		evbpoint = evbwpoint;
 		if (++evbwpoint >= EVBUFF_SIZE)
 			evbwpoint -= EVBUFF_SIZE;
+		evbuf[evbpoint].uDeviceID = !!uDeviceID;
 		evbuf[evbpoint].uMsg = uMsg;
 		evbuf[evbpoint].dwParam1 = dwParam1;
 		evbuf[evbpoint].dwParam2 = dwParam2;
@@ -943,7 +901,7 @@ most drivers, this behavior is sufficient.*/
 	}
 
 	case MODM_RESET:
-		DoResetClient();
+		DoResetClient(uDeviceID);
 		return MMSYSERR_NOERROR;
 /*
     MODM_GETPOS

@@ -20,14 +20,16 @@ using namespace utf8util;
 #if _MSC_VER > 1000
 #pragma once
 #endif // _MSC_VER > 1000
-class CView1 : public CDialogImpl<CView1>, public CDropFileTarget<CView1>
+template <bool port>
+class CView1 : public CDialogImpl<CView1<port>>, public CDropFileTarget<CView1<port>>
 {
+	const TCHAR * list_name;
 	CListViewCtrl listbox;
 	CButton addsf,removesf, upsf,downsf,applysf;
 	HMODULE bass, bassmidi;
 public:
    enum { IDD = IDD_MAIN };
-   BEGIN_MSG_MAP(CView1)
+   BEGIN_MSG_MAP(CView1<port>)
 	   MESSAGE_HANDLER(WM_INITDIALOG, OnInitDialogView1)
 	   COMMAND_ID_HANDLER(IDC_ADDSF,OnButtonAdd)
 	   COMMAND_ID_HANDLER(IDC_RMSF,OnButtonRemove)
@@ -35,8 +37,10 @@ public:
 	   COMMAND_ID_HANDLER(IDC_UPSF,OnButtonUp)
 	   COMMAND_ID_HANDLER(IDC_SFAPPLY,OnButtonApply)
 	   COMMAND_ID_HANDLER(IDC_CLEARALL, OnClearAll)
-	   CHAIN_MSG_MAP(CDropFileTarget<CView1>)
+	   CHAIN_MSG_MAP(CDropFileTarget<CView1<port>>)
    END_MSG_MAP()
+
+	CView1() : list_name( port ? _T("bassmidi_b.sflist") : _T("bassmidi.sflist") ) { }
 
 	LRESULT OnInitDialogView1(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
 	{
@@ -118,7 +122,7 @@ public:
 			0, 
 			sfpath))) 
 		{
-			PathAppend(sfpath,L"bassmidi.sflist");
+			PathAppend(sfpath,list_name);
 			read_sflist(sfpath);
 		}
 		return TRUE;
@@ -330,7 +334,7 @@ public:
 		   0, 
 		   sfpath))) 
 	   {
-		   PathAppend(sfpath,L"bassmidi.sflist");
+		   PathAppend(sfpath,list_name);
 	   }
 	   ofstream out;
 	   out.open(sfpath);

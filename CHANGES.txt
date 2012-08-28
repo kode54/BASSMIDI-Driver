@@ -1,3 +1,6 @@
+3.13
+  driver/config
+  * implemented independent soundfont configuration for each port
 3.12
   winmm driver
   * hopefully fixed event buffering
