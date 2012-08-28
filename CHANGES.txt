@@ -1,3 +1,6 @@
+3.14
+  installer
+  * now writes the uninstaller to the correct location
 3.13
   driver/config
   * implemented independent soundfont configuration for each port

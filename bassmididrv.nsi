@@ -172,7 +172,7 @@ REGDONE:
    CreateShortCut "$SMPROGRAMS\BASSMIDI System Synth\SoundFont Packer.lnk" "$WINDIR\SysWow64\bassmididrv\sfpacker.exe" "" "$WINDIR\SysWow64\sfpacker.exe" 0
    CreateShortCut "$SMPROGRAMS\BASSMIDI System Synth\Configure BASSMIDI Driver.lnk" "$WINDIR\SysWow64\bassmididrv\bassmididrvcfg.exe" "" "$WINDIR\SysWow64\bassmididrv\bassmididrvcfg.exe" 0
    ${Else}
-   WriteUninstaller "$WINDIR\System32\bassmididrvuninstall.exe"
+   WriteUninstaller "$WINDIR\System32\bassmididrv\bassmididrvuninstall.exe"
    WriteRegStr HKLM "Software\BASSMIDI Driver" "path" "$WINDIR\System32\bassmididrv"
    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\BASSMIDI System Synth" "UninstallString" '"$WINDIR\System32\bassmididrv\bassmididrvuninstall.exe"'
    CreateShortCut "$SMPROGRAMS\BASSMIDI System Synth\Uninstall.lnk" "$WINDIR\System32\bassmididrv\bassmididrvuninstall.exe" "" "$WINDIR\System32\bassmididrv\bassmididrvuninstall.exe" 0
@@ -193,17 +193,19 @@ Section "Uninstall"
   ReadRegStr $1 HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\BASSMIDI System Synth\Backup" \
       "MIDIDRV"
   WriteRegStr HKLM "Software\Microsoft\Windows NT\CurrentVersion\Drivers32" "$0" "$1"
-  DeleteRegKey HKLM "Software\BASSMIDI Driver"
-  RMDir /r "$SMPROGRAMS\BASSMIDI System Synth"
  ${If} ${RunningX64}
-    ReadRegStr $0 HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\BASSMIDI System Synth\Backup" \
+     ReadRegStr $0 HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\BASSMIDI System Synth\Backup" \
        "MIDI64"
   ReadRegStr $1 HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\BASSMIDI System Synth\Backup" \
       "MIDIDRV64"
   SetRegView 64
   WriteRegStr HKLM "Software\Microsoft\Windows NT\CurrentVersion\Drivers32" "$0" "$1"
   SetRegView 32
+${EndIf}
   DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\BASSMIDI System Synth"
+  DeleteRegKey HKLM "Software\BASSMIDI Driver"
+  RMDir /r "$SMPROGRAMS\BASSMIDI System Synth"
+ ${If} ${RunningX64}
  ${If} ${AtLeastWinVista}
   RMDir /r  "$WINDIR\SysWow64\bassmididrv"
   RMDir /r  "$WINDIR\SysNative\bassmididrv"
@@ -229,7 +231,6 @@ ${Else}
   Reboot
 ${Endif}
 ${Else}
-  DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\BASSMIDI System Synth"
 ${If} ${AtLeastWinVista}
   RMDir /r  "$WINDIR\System32\bassmididrv"
 ${Else}
