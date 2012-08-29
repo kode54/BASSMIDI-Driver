@@ -96,12 +96,6 @@ public:
 		return 0;
 	}
 
-	virtual const char* set_volume( double volume )
-	{
-		if ( !p_stream->set_volume( volume ) ) return "setting volume";
-		return 0;
-	}
-
 	virtual const char* set_ratio( double ratio )
 	{
 		if ( !p_stream->set_ratio( ratio ) ) return "setting ratio";

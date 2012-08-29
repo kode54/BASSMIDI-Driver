@@ -173,7 +173,6 @@ class ds_stream_i : public ds_stream
 	bool pause_request;
 
 	double current_time;
-	double current_volume,requested_volume;
 	
 	unsigned buffer_ms;
 
@@ -184,7 +183,6 @@ class ds_stream_i : public ds_stream
 
 	void force_play_internal();
 	void flush_internal();
-	void set_volume_internal(double val);
 
 	ds_api_i * api;
 	bool b_release_requested;
@@ -205,8 +203,6 @@ public:
 
 	//destructor methods
 	virtual void release();
-
-	virtual bool set_volume(double val);
 
 	virtual bool pause(bool status);
 
@@ -296,8 +292,6 @@ ds_stream_i::ds_stream_i(ds_api_i * p_api,const ds_stream_config * cfg)
 	latency_bytes = 0;
 	pause_request = false;
 	current_time = 0;
-	current_volume = -1;
-	requested_volume = 1;
 	p_dsb = 0;
 }
 
@@ -364,7 +358,7 @@ bool ds_stream_i::update()
 
 		DSBUFFERDESC desc;
 		desc.dwSize = sizeof(desc);
-		desc.dwFlags = DSBCAPS_GETCURRENTPOSITION2|DSBCAPS_STICKYFOCUS|DSBCAPS_GLOBALFOCUS|DSBCAPS_CTRLFREQUENCY|DSBCAPS_CTRLVOLUME;
+		desc.dwFlags = DSBCAPS_GETCURRENTPOSITION2|DSBCAPS_STICKYFOCUS|DSBCAPS_GLOBALFOCUS|DSBCAPS_CTRLFREQUENCY;
 		desc.dwBufferBytes = buffer_size = ms2bytes(buffer_size_ms);
 		desc.dwReserved = 0;
 		desc.lpwfxFormat = &wfx;
@@ -450,11 +444,6 @@ bool ds_stream_i::update()
 		b_force_play = false;
 	}
 
-
-	if (current_volume != requested_volume)
-	{
-		set_volume_internal(requested_volume);
-	}
 
 	if (pause_request!=paused)
 	{
@@ -628,25 +617,6 @@ void ds_stream_i::flush_internal()
 	incoming.reset();
 }
 
-
-void ds_stream_i::set_volume_internal(double val)
-{
-	if (p_dsb)
-	{
-		double vol_log = val>0 ? 20.0*log10(val) : -100.0;
-//		console::info(uStringPrintf("%06u",(unsigned)(-vol_log * 100)));
-		p_dsb->SetVolume(static_cast<long>(vol_log * 100));
-		current_volume = val;
-	}
-}
-
-bool ds_stream_i::set_volume(double val)
-{
-	insync(g_sync);
-	if (b_error) return false;
-	requested_volume = val;
-	return true;
-}
 
 bool ds_stream_i::pause(bool status)
 {

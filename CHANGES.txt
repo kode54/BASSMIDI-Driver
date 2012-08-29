@@ -1,3 +1,6 @@
+3.15
+  winmm driver
+  * replaced output device volume control with simple software scaling
 3.14
   installer
   * now writes the uninstaller to the correct location

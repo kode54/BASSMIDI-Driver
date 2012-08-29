@@ -86,6 +86,7 @@ static HSTREAM hStream[2] = {0, 0};
 static BOOL com_initialized = FALSE;
 static BOOL sound_out_float = FALSE;
 static float sound_out_volume_float = 1.0;
+static int sound_out_volume_int = 0x1000;
 static sound_out * sound_driver = NULL;
 
 static HINSTANCE bass = 0;			// bass handle
@@ -475,6 +476,7 @@ void load_settings()
 	RegQueryValueEx(hKey, L"volume", NULL, &dwType,(LPBYTE)&config_volume, &dwSize);
 	RegCloseKey( hKey);
 	sound_out_volume_float = (float)config_volume / 10000.0f;
+	sound_out_volume_int = (int)(sound_out_volume_float * (float)0x1000);
 }
 
 int check_sinc()
@@ -631,13 +633,11 @@ unsigned __stdcall threadfunc(LPVOID lpV){
 		if (reset_synth[ 0 ] != 0){
 			reset_synth[ 0 ] = 0;
 			load_settings();
-			sound_driver->set_volume( sound_out_volume_float );
 			BASS_MIDI_StreamEvent( hStream[ 0 ], 0, MIDI_EVENT_SYSTEM, MIDI_SYSTEM_DEFAULT );
 		}
 		if (reset_synth[ 1 ] != 0){
 			reset_synth[ 1 ] = 0;
 			load_settings();
-			sound_driver->set_volume( sound_out_volume_float );
 			BASS_MIDI_StreamEvent( hStream[ 1 ], 0, MIDI_EVENT_SYSTEM, MIDI_SYSTEM_DEFAULT );
 		}
 		bmsyn_play_some_data();
@@ -648,7 +648,11 @@ unsigned __stdcall threadfunc(LPVOID lpV){
 			if ( decoded < 0 || decoded2 < 0 ) Sleep(1);
 			else {
 				assert( decoded == decoded2 );
-				for ( unsigned i = 0, j = decoded / sizeof(float); i < j; i++ ) sound_buffer[ 0 ][ i ] += sound_buffer[ 1 ][ i ];
+				for ( unsigned i = 0, j = decoded / sizeof(float); i < j; i++ ) {
+					float sample = sound_buffer[ 0 ][ i ] + sound_buffer[ 1 ][ i ];
+					sample *= sound_out_volume_float;
+					sound_buffer[ 0 ][ i ] = sample;
+				}
 				sound_driver->write_frame( sound_buffer[ 0 ], decoded / sizeof(float), true );
 			}
 		} else {
@@ -660,6 +664,7 @@ unsigned __stdcall threadfunc(LPVOID lpV){
 				assert( decoded == decoded2 );
 				for ( unsigned i = 0, j = decoded / sizeof(short); i < j; i++ ) {
 					int sample = sound_buffer[ 0 ][ i ] + sound_buffer[ 1 ][ i ];
+					sample = ( sample * sound_out_volume_int ) >> 12;
 					if ( ( sample + 0x8000 ) & 0xFFFF0000 ) sample = 0x7FFF ^ ( sample >> 31 );
 					sound_buffer[ 0 ][ i ] = sample;
 				}
@@ -896,7 +901,7 @@ most drivers, this behavior is sufficient.*/
 	}
 	case MODM_SETVOLUME: {
 		sound_out_volume_float = LOWORD(dwParam1) / (float)0xFFFF;
-		sound_driver->set_volume(sound_out_volume_float);
+		sound_out_volume_int = (int)(sound_out_volume_float * (float)0x1000);
 		return MMSYSERR_NOERROR;
 	}
 

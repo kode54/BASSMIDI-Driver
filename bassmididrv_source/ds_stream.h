@@ -14,7 +14,6 @@ public:
 	virtual unsigned can_write_bytes()=0;
 	virtual bool force_play()=0;
 	virtual bool pause(bool status)=0;
-	virtual bool set_volume(double val) = 0;
 	virtual bool set_ratio(double ratio)=0;
 	
 	//destructor methods
