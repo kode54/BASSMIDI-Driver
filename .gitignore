@@ -1,9 +1,16 @@
+/bassmididrv_source/*.exp
+/bassmididrv_source/*.ilk
+/bassmididrv_source/*.lib
+/bassmididrv_source/*.obj
 /bassmididrv_source/*.opensdf
+/bassmididrv_source/*.pdb
 /bassmididrv_source/*.sdf
 /bassmididrv_source/*.vcxproj.user
 /bassmididrv_source/*.suo
 /bassmididrv_source/*.user
 /bassmididrv_source/ipch
+/bassmididrv_source/x64
+/bassmididrv_source/output
 /bassmididrv_source/Release
 /bassmididrv_source/Debug
 /bassmididrv_source/out
@@ -31,3 +38,4 @@
 /sfpacker/*.exe
 /output/
 git_ver.h
+bassmididrv.exe
