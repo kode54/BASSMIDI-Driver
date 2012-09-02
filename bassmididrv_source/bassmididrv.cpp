@@ -40,13 +40,8 @@ void _endthreadex( unsigned retval );
 #define MAX_DRIVERS 2
 #define MAX_CLIENTS 1 // Per driver
 
-/*
 #define SAMPLES_PER_FRAME 88 * 2
-#define FRAMES_XAUDIO 30
-#define FRAMES_DSOUND 50
-*/
-#define SAMPLES_PER_FRAME 128
-#define FRAMES_XAUDIO 20
+#define FRAMES_XAUDIO 15
 #define FRAMES_DSOUND 50
 #define SAMPLE_RATE_USED 44100
 
@@ -96,13 +91,47 @@ static HINSTANCE hinst = NULL;             //main DLL handle
 
 static void DoStopClient();
 
+class message_window
+{
+	HWND m_hWnd;
+	ATOM class_atom;
+
+public:
+	message_window() {
+		static const TCHAR * class_name = _T("bassmididrv message window");
+		WNDCLASSEX cls = { 0 };
+		cls.cbSize = sizeof(cls);
+		cls.lpfnWndProc = DefWindowProc;
+		cls.hInstance = hinst;
+		cls.lpszClassName = class_name;
+		class_atom = RegisterClassEx( &cls );
+		if ( class_atom ) {
+			m_hWnd = CreateWindowEx( 0, (LPCTSTR) class_atom, _T("bassmididrv"), 0, 0, 0, 0, 0, HWND_MESSAGE, NULL, hinst, NULL );
+		} else {
+			m_hWnd = NULL;
+		}
+	}
+
+	~message_window()
+	{
+		if ( IsWindow( m_hWnd ) ) DestroyWindow( m_hWnd );
+		if ( class_atom ) UnregisterClass( (LPCTSTR) class_atom, hinst );
+	}
+
+	HWND get_hwnd() const { return m_hWnd; }
+};
+
+message_window * g_msgwnd = NULL;
+
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved ){
 	if (fdwReason == DLL_PROCESS_ATTACH){
 	    hinst = hinstDLL;
 		DisableThreadLibraryCalls(hinstDLL);
+		g_msgwnd = new message_window;
 	}else if(fdwReason == DLL_PROCESS_DETACH){
 		;
 		DoStopClient();
+		delete g_msgwnd;
 	}
 	return TRUE;    
 }
@@ -566,11 +595,11 @@ unsigned __stdcall threadfunc(LPVOID lpV){
 		}
 		if (sound_driver == NULL) {
 			sound_driver = create_sound_out_xaudio2();
-			const char * err = sound_driver->open(GetDesktopWindow(), SAMPLE_RATE_USED, 2, (sound_out_float = TRUE) != 0, SAMPLES_PER_FRAME, FRAMES_XAUDIO);
+			const char * err = sound_driver->open(g_msgwnd->get_hwnd(), SAMPLE_RATE_USED, 2, (sound_out_float = TRUE) != 0, SAMPLES_PER_FRAME, FRAMES_XAUDIO);
 			if (err) {
 				delete sound_driver;
 				sound_driver = create_sound_out_ds();
-				err = sound_driver->open(GetDesktopWindow(), SAMPLE_RATE_USED, 2,  (sound_out_float = FALSE)  != 0, SAMPLES_PER_FRAME, FRAMES_DSOUND);
+				err = sound_driver->open(g_msgwnd->get_hwnd(), SAMPLE_RATE_USED, 2,  (sound_out_float = FALSE)  != 0, SAMPLES_PER_FRAME, FRAMES_DSOUND);
 			}
 			if (err) {
 				delete sound_driver;
@@ -581,7 +610,7 @@ unsigned __stdcall threadfunc(LPVOID lpV){
 		load_bassfuncs();
 		BASS_SetConfig(BASS_CONFIG_UPDATEPERIOD, 0);
 		BASS_SetConfig(BASS_CONFIG_UPDATETHREADS, 0);
-		if ( BASS_Init( 0, SAMPLE_RATE_USED, 0, GetDesktopWindow(), NULL ) ) {
+		if ( BASS_Init( 0, SAMPLE_RATE_USED, 0, NULL, NULL ) ) {
 			hStream[0] = BASS_MIDI_StreamCreate( 16, BASS_STREAM_DECODE | ( sound_out_float ? BASS_SAMPLE_FLOAT : 0 ) | (check_sinc()?BASS_MIDI_SINCINTER: 0), SAMPLE_RATE_USED );
 			if (!hStream[0]) continue;
 			hStream[1] = BASS_MIDI_StreamCreate( 16, BASS_STREAM_DECODE | ( sound_out_float ? BASS_SAMPLE_FLOAT : 0 ) | (check_sinc()?BASS_MIDI_SINCINTER: 0), SAMPLE_RATE_USED );
