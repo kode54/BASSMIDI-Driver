@@ -610,6 +610,7 @@ unsigned __stdcall threadfunc(LPVOID lpV){
 		load_bassfuncs();
 		BASS_SetConfig(BASS_CONFIG_UPDATEPERIOD, 0);
 		BASS_SetConfig(BASS_CONFIG_UPDATETHREADS, 0);
+		BASS_SetConfig(BASS_CONFIG_MIDI_VOICES, 256);
 		if ( BASS_Init( 0, SAMPLE_RATE_USED, 0, NULL, NULL ) ) {
 			hStream[0] = BASS_MIDI_StreamCreate( 16, BASS_STREAM_DECODE | ( sound_out_float ? BASS_SAMPLE_FLOAT : 0 ) | (check_sinc()?BASS_MIDI_SINCINTER: 0), SAMPLE_RATE_USED );
 			if (!hStream[0]) continue;

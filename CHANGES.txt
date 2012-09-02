@@ -1,3 +1,7 @@
+3.16
+  winmm driver
+  * restored original sound buffer sizes
+  * increased maximum polyphony to 256 voices
 3.15
   winmm driver
   * replaced output device volume control with simple software scaling
