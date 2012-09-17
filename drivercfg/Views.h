@@ -356,6 +356,7 @@ class CView2 : public CDialogImpl<CView2>
 {
 	CComboBox synthlist;
 	CTrackBarCtrl slider_volume;
+	CTrackBarCtrl buffer_length;
 	CButton apply;
 	CButton apply2;
 	CButton sinc_inter;
@@ -372,6 +373,8 @@ public:
    LRESULT OnInitDialogView2(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
    {
 	   slider_volume = GetDlgItem(IDC_VOLUME);
+	   buffer_length = GetDlgItem(IDC_BUFLEN);
+	   buffer_length.SetRange(10,100);
 	   slider_volume.SetRange(0,10000);
 	   synthlist = GetDlgItem(IDC_SYNTHLIST);
 	   apply = GetDlgItem(IDC_SNAPPLY);
@@ -401,24 +404,29 @@ public:
 		long lResult;
 		DWORD volume;
 		DWORD sinc;
+		DWORD buflen;
 		CRegKeyEx reg;
 		lResult = reg.Create(HKEY_LOCAL_MACHINE, L"Software\\BASSMIDI Driver", 0, REG_OPTION_NON_VOLATILE, KEY_READ | KEY_WOW64_32KEY);
 		reg.QueryDWORDValue( L"volume",volume);
 		reg.QueryDWORDValue( L"sinc",sinc);
+		reg.QueryDWORDValue( L"buflen",buflen);
 		reg.Close();
 		slider_volume.SetPos(volume);
 		sinc_inter.SetCheck(sinc);
+		buffer_length.SetPos(buflen);
    }
 
    void save_settings()
    {
 	   DWORD volume = slider_volume.GetPos();
+	   DWORD buflen = buffer_length.GetPos();
 	   DWORD sinc = sinc_inter.GetCheck();
 	   HKEY hKey, hSubKey;
 	   long lResult;
 	   CRegKeyEx reg;
 	   lResult = reg.Create(HKEY_LOCAL_MACHINE, L"Software\\BASSMIDI Driver", 0, REG_OPTION_NON_VOLATILE, KEY_WRITE | KEY_WOW64_32KEY);
 	   lResult = reg.SetDWORDValue(L"volume",volume);
+	   lResult = reg.SetDWORDValue(L"buflen",buflen);
 	   lResult = reg.SetDWORDValue(L"sinc",sinc);
 
 	   if (lResult == ERROR_SUCCESS)

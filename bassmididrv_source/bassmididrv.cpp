@@ -82,6 +82,7 @@ static BOOL com_initialized = FALSE;
 static BOOL sound_out_float = FALSE;
 static float sound_out_volume_float = 1.0;
 static int sound_out_volume_int = 0x1000;
+static int xaudio2_frames = 15; //default
 static sound_out * sound_driver = NULL;
 
 static HINSTANCE bass = 0;			// bass handle
@@ -503,6 +504,7 @@ void load_settings()
 	DWORD dwSize=sizeof(DWORD);
 	lResult = RegOpenKeyEx(HKEY_LOCAL_MACHINE, L"Software\\BASSMIDI Driver", 0, KEY_READ | KEY_WOW64_32KEY, &hKey);
 	RegQueryValueEx(hKey, L"volume", NULL, &dwType,(LPBYTE)&config_volume, &dwSize);
+	RegQueryValueEx(hKey, L"buflen", NULL, &dwType,(LPBYTE)&xaudio2_frames, &dwSize);
 	RegCloseKey( hKey);
 	sound_out_volume_float = (float)config_volume / 10000.0f;
 	sound_out_volume_int = (int)(sound_out_volume_float * (float)0x1000);
@@ -593,9 +595,10 @@ unsigned __stdcall threadfunc(LPVOID lpV){
 			if (FAILED(CoInitialize(NULL))) continue;
 			com_initialized = TRUE;
 		}
+		load_settings();
 		if (sound_driver == NULL) {
 			sound_driver = create_sound_out_xaudio2();
-			const char * err = sound_driver->open(g_msgwnd->get_hwnd(), SAMPLE_RATE_USED, 2, (sound_out_float = TRUE) != 0, SAMPLES_PER_FRAME, FRAMES_XAUDIO);
+			const char * err = sound_driver->open(g_msgwnd->get_hwnd(), SAMPLE_RATE_USED, 2, (sound_out_float = TRUE) != 0, SAMPLES_PER_FRAME, xaudio2_frames);
 			if (err) {
 				delete sound_driver;
 				sound_driver = create_sound_out_ds();
@@ -622,7 +625,7 @@ unsigned __stdcall threadfunc(LPVOID lpV){
 			}
 			BASS_MIDI_StreamEvent( hStream[0], 0, MIDI_EVENT_SYSTEM, MIDI_SYSTEM_DEFAULT );
 			BASS_MIDI_StreamEvent( hStream[1], 0, MIDI_EVENT_SYSTEM, MIDI_SYSTEM_DEFAULT );
-			load_settings();
+		
 			if (GetWindowsDirectory(config, MAX_PATH))
 			{
 				_tcscpy( configb, config );
