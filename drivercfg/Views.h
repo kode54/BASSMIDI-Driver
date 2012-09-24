@@ -374,7 +374,7 @@ public:
    {
 	   slider_volume = GetDlgItem(IDC_VOLUME);
 	   buffer_length = GetDlgItem(IDC_BUFLEN);
-	   buffer_length.SetRange(10,100);
+	   buffer_length.SetRange(10,64);
 	   slider_volume.SetRange(0,10000);
 	   synthlist = GetDlgItem(IDC_SYNTHLIST);
 	   apply = GetDlgItem(IDC_SNAPPLY);
@@ -407,9 +407,9 @@ public:
 		DWORD buflen;
 		CRegKeyEx reg;
 		lResult = reg.Create(HKEY_LOCAL_MACHINE, L"Software\\BASSMIDI Driver", 0, REG_OPTION_NON_VOLATILE, KEY_READ | KEY_WOW64_32KEY);
-		reg.QueryDWORDValue( L"volume",volume);
-		reg.QueryDWORDValue( L"sinc",sinc);
-		reg.QueryDWORDValue( L"buflen",buflen);
+		if ( reg.QueryDWORDValue( L"volume",volume) ) volume = 10000;
+		if ( reg.QueryDWORDValue( L"sinc",sinc) ) sinc = 1;
+		if ( reg.QueryDWORDValue( L"buflen",buflen) ) buflen = 15;
 		reg.Close();
 		slider_volume.SetPos(volume);
 		sinc_inter.SetCheck(sinc);
