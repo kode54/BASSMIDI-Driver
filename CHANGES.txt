@@ -1,4 +1,9 @@
-
+3.18
+  winmm driver
+  * changed to use 16 bit for XAudio2 on Windows XP
+  config
+  * changed XAudio2 buffer range to a maximum of 64
+  * changed settings loader to provide some sensible defaults on load failure
 3.17
   winmm driver
   * added configurable buffer length for XAudio2 output
