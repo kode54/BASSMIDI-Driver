@@ -1,3 +1,6 @@
+3.19
+  winmm driver
+  * added configurable buffer length for DirectSound output
 3.18
   winmm driver
   * changed to use 16 bit for XAudio2 on Windows XP
