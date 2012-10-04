@@ -83,6 +83,7 @@ static BOOL sound_out_float = FALSE;
 static float sound_out_volume_float = 1.0;
 static int sound_out_volume_int = 0x1000;
 static int xaudio2_frames = 15; //default
+static int dsound_frames = 50; //default
 static sound_out * sound_driver = NULL;
 
 static HINSTANCE bass = 0;			// bass handle
@@ -505,6 +506,7 @@ void load_settings()
 	lResult = RegOpenKeyEx(HKEY_LOCAL_MACHINE, L"Software\\BASSMIDI Driver", 0, KEY_READ | KEY_WOW64_32KEY, &hKey);
 	RegQueryValueEx(hKey, L"volume", NULL, &dwType,(LPBYTE)&config_volume, &dwSize);
 	RegQueryValueEx(hKey, L"buflen", NULL, &dwType,(LPBYTE)&xaudio2_frames, &dwSize);
+	RegQueryValueEx(hKey, L"dbuflen", NULL, &dwType,(LPBYTE)&dsound_frames, &dwSize);
 	RegCloseKey( hKey);
 	sound_out_volume_float = (float)config_volume / 10000.0f;
 	sound_out_volume_int = (int)(sound_out_volume_float * (float)0x1000);
@@ -616,7 +618,7 @@ unsigned __stdcall threadfunc(LPVOID lpV){
 			if (err) {
 				delete sound_driver;
 				sound_driver = create_sound_out_ds();
-				err = sound_driver->open(g_msgwnd->get_hwnd(), SAMPLE_RATE_USED, 2,  sound_out_float, SAMPLES_PER_FRAME, FRAMES_DSOUND);
+				err = sound_driver->open(g_msgwnd->get_hwnd(), SAMPLE_RATE_USED, 2,  sound_out_float, SAMPLES_PER_FRAME, dsound_frames);
 			}
 			if (err) {
 				delete sound_driver;
