@@ -414,7 +414,7 @@ public:
 		if ( reg.QueryDWORDValue( L"volume",volume) ) volume = 10000;
 		if ( reg.QueryDWORDValue( L"sinc",sinc) ) sinc = 1;
 		if ( reg.QueryDWORDValue( L"buflen",buflen) ) buflen = 15;
-		if ( reg.QueryDWORDValue( L"dbuflen",dbuflen) ) dbuflen = 15;
+		if ( reg.QueryDWORDValue( L"dbuflen",dbuflen) ) dbuflen = 50;
 		reg.Close();
 		slider_volume.SetPos(volume);
 		sinc_inter.SetCheck(sinc);
