@@ -4,6 +4,8 @@
 #include <iostream>
 #include <fstream> 
 
+#include <mmddk.h>
+
 #include "utf8conv.h"
 
 
@@ -352,8 +354,24 @@ public:
 
 
 
+BOOL IsWin8OrNewer()
+{
+	OSVERSIONINFOEX osvi;
+	BOOL bOsVersionInfoEx;
+	ZeroMemory(&osvi, sizeof(OSVERSIONINFOEX));
+	osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
+	bOsVersionInfoEx = GetVersionEx((OSVERSIONINFO*) &osvi);
+	if( bOsVersionInfoEx == FALSE ) return FALSE;
+	if ( VER_PLATFORM_WIN32_NT == osvi.dwPlatformId &&
+	     ( osvi.dwMajorVersion > 6 ||
+		 ( osvi.dwMajorVersion == 6 && osvi.dwMinorVersion > 1 ) ) )
+		return TRUE;
+	return FALSE;
+}
+
 class CView2 : public CDialogImpl<CView2>
 {
+	BOOL win8;
 	CComboBox synthlist;
 	CTrackBarCtrl slider_volume;
 	CTrackBarCtrl buffer_length;
@@ -362,6 +380,16 @@ class CView2 : public CDialogImpl<CView2>
 	CButton apply2;
 	CButton sinc_inter;
 
+	/* This is for Windows 6.2 and newer */
+	struct SDriverInfo
+	{
+		CString driver_path;
+		CSimpleArray<CString> driver_names;
+	};
+
+	CSimpleArray<SDriverInfo> drivers;
+
+	typedef DWORD (STDAPICALLTYPE * pmodMessage)(UINT uDeviceID, UINT uMsg, DWORD_PTR dwUser, DWORD_PTR dwParam1, DWORD_PTR dwParam2);
 
 public:
    enum { IDD = IDD_ADVANCED };
@@ -384,13 +412,14 @@ public:
 	   apply2 = GetDlgItem(IDC_APPLY);
 	   sinc_inter = GetDlgItem(IDC_SINC);
 	   load_settings();
-	   load_midisynths();
+	   win8 = IsWin8OrNewer();
+	   win8 ? load_midisynths_manual() : load_midisynths_mapper();
 	   return TRUE;
    }
 
    LRESULT OnButtonApply( WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/ )
    {
-	   set_midisynth();
+	   win8 ? set_midisynth_manual() : set_midisynth_mapper();
 	   return 0;
 
    }
@@ -410,7 +439,7 @@ public:
 		DWORD buflen;
 		DWORD dbuflen;
 		CRegKeyEx reg;
-		lResult = reg.Create(HKEY_LOCAL_MACHINE, L"Software\\BASSMIDI Driver", 0, REG_OPTION_NON_VOLATILE, KEY_READ | KEY_WOW64_32KEY);
+		lResult = reg.Create(HKEY_LOCAL_MACHINE, L"Software\\BASSMIDI Driver", REG_NONE, REG_OPTION_NON_VOLATILE, KEY_READ | KEY_WOW64_32KEY);
 		if ( reg.QueryDWORDValue( L"volume",volume) ) volume = 10000;
 		if ( reg.QueryDWORDValue( L"sinc",sinc) ) sinc = 1;
 		if ( reg.QueryDWORDValue( L"buflen",buflen) ) buflen = 15;
@@ -431,7 +460,7 @@ public:
 	   HKEY hKey, hSubKey;
 	   long lResult;
 	   CRegKeyEx reg;
-	   lResult = reg.Create(HKEY_LOCAL_MACHINE, L"Software\\BASSMIDI Driver", 0, REG_OPTION_NON_VOLATILE, KEY_WRITE | KEY_WOW64_32KEY);
+	   lResult = reg.Create(HKEY_LOCAL_MACHINE, L"Software\\BASSMIDI Driver", REG_NONE, REG_OPTION_NON_VOLATILE, KEY_WRITE | KEY_WOW64_32KEY);
 	   lResult = reg.SetDWORDValue(L"volume",volume);
 	   lResult = reg.SetDWORDValue(L"buflen",buflen);
 	   lResult = reg.SetDWORDValue(L"dbuflen",dbuflen);
@@ -449,18 +478,20 @@ public:
 	   reg.Close();
    }
 
-   void set_midisynth()
+   /* These only work on Windows 6.1 and older */
+   void set_midisynth_mapper()
    {
 	   CRegKeyEx reg;
 	   CRegKeyEx subkey;
 	   CString device_name;
 	   long lRet;
 	   int selection = synthlist.GetCurSel();
-	   int n = synthlist.GetLBTextLen(selection);
+       int n = synthlist.GetLBTextLen(selection);
 	   synthlist.GetLBText(selection,device_name.GetBuffer(n));
-	   lRet = reg.Create(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Multimedia");
+	   device_name.ReleaseBuffer(n);
+	   lRet = reg.Create(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Multimedia", REG_NONE, REG_OPTION_NON_VOLATILE, KEY_WRITE | KEY_WOW64_32KEY);
 	   lRet = reg.DeleteSubKey(L"MIDIMap");
-	   lRet = subkey.Create(reg,L"MIDIMap");
+	   lRet = subkey.Create(reg, L"MIDIMap", REG_NONE, REG_OPTION_NON_VOLATILE, KEY_WRITE);
 	   lRet = subkey.SetStringValue(L"szPname",device_name);
 	   if (lRet == ERROR_SUCCESS)
 	   {
@@ -470,20 +501,20 @@ public:
 	   {
 		   MessageBox(L"Can't set MIDI registry key",L"Damn!",MB_ICONSTOP);
 	   }
-	   device_name.ReleaseBuffer(n);
 	   subkey.Close();
 	   reg.Close();
    }
 
-	void load_midisynths()
+	void load_midisynths_mapper()
 	{
 		LONG lResult;
 		CRegKeyEx reg;
 		CString device_name;
-		ULONG size;
-		lResult = reg.Create(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Multimedia\\MIDIMap");
+		ULONG size = 128;
+		lResult = reg.Create(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Multimedia\\MIDIMap", REG_NONE, REG_OPTION_NON_VOLATILE, KEY_READ | KEY_WOW64_32KEY);
 		reg.QueryStringValue(L"szPname",device_name.GetBuffer(size),&size);
 		reg.Close();
+		device_name.ReleaseBuffer(size);
 		int device_count = midiOutGetNumDevs();
 		for (int i = 0; i < device_count; ++i) {
 			MIDIOUTCAPS Caps;
@@ -497,7 +528,178 @@ public:
 		index = synthlist.FindStringExact(-1,device_name);
 		if (index == CB_ERR) index = 0;
 		synthlist.SetCurSel(index);
-		device_name.ReleaseBuffer(size);
+	}
+
+	/* In Windows 6.2 and newer, the MIDI mapper module ignores the
+	 * mapping sub-keys, so we have to enumerate the drivers and their
+	 * names manually, then replace the primary driver path with the
+	 * sole default the user requests. */
+	void set_midisynth_manual()
+	{
+		LONG lResult;
+		CRegKeyEx reg;
+		DWORD index = 0;
+		DWORD subindex;
+		DWORD device_number = 1;
+		DWORD name_length;
+		DWORD type;
+		CString device_name;
+		CString value_name;
+		CString value_number;
+		CSimpleArray<CString> old_value_names;
+
+		int selection = synthlist.GetCurSel();
+		int n = synthlist.GetLBTextLen( selection );
+		synthlist.GetLBText( selection, device_name.GetBuffer( n ) );
+		device_name.ReleaseBuffer( n );
+
+		lResult = reg.Create( HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Drivers32", REG_NONE, REG_OPTION_NON_VOLATILE, KEY_WRITE | KEY_QUERY_VALUE | KEY_WOW64_32KEY );
+		if ( lResult == ERROR_SUCCESS )
+		{
+			do
+			{
+				name_length = 64;
+				lResult = RegEnumValue( reg, index++, value_name.GetBuffer( 64 ), &name_length, NULL, &type, NULL, NULL );
+				if ( lResult == ERROR_MORE_DATA ) continue;
+				if ( lResult != ERROR_SUCCESS ) break;
+				if ( type != REG_SZ ) continue;
+
+				value_name.ReleaseBuffer( name_length );
+
+				if ( !_tcscmp( value_name, _T("midi") ) ||
+					( !_tcsncmp( value_name, _T("midi"), 4 ) &&
+					_tcscmp( value_name, _T("midimapper") ) ) )
+				{
+					old_value_names.Add( value_name );
+				}
+			}
+			while ( lResult == ERROR_SUCCESS || lResult == ERROR_MORE_DATA );
+
+			for ( index = 0; index < old_value_names.GetSize(); index++ )
+			{
+				reg.DeleteValue( old_value_names[ index ] );
+			}
+
+			for ( index = 0; index < drivers.GetSize(); index++ )
+			{
+				for ( subindex = 0; subindex < drivers[ index ].driver_names.GetSize(); subindex++ )
+				{
+					if ( !_tcscmp( drivers[ index ].driver_names[ subindex ], device_name ) )
+					{
+						reg.SetStringValue( _T("midi"), drivers[ index ].driver_path );
+						break;
+					}
+				}
+				if ( subindex == drivers[ index ].driver_names.GetSize() )
+				{
+					_itot_s( device_number++, value_number.GetBuffer( 16 ), 16, 10 );
+					value_number.ReleaseBuffer();
+					value_name = "midi";
+					value_name += value_number;
+					reg.SetStringValue( value_name, drivers[ index ].driver_path );
+				}
+			}
+		}
+	}
+
+	void load_midisynths_manual()
+	{
+		HRESULT hResult;
+		LONG lResult;
+		CRegKeyEx reg;
+		CString value_name;
+		CString device_path;
+		CString system_path;
+		CString device_full_path;
+		CString device_name;
+		HDRVR hDriver;
+		HMODULE hModule;
+		pmodMessage themodMessage;
+		ULONG size;
+		BOOL default_found = FALSE;
+		DWORD default_index = 0;
+		DWORD index = 0;
+		DWORD type;
+		DWORD name_length;
+		DWORD path_length;
+		DWORD driver_count;
+		DWORD driver_number;
+		MIDIOUTCAPS driver_caps;
+
+		lResult = reg.Create( HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Drivers32", REG_NONE, REG_OPTION_NON_VOLATILE, KEY_WRITE | KEY_QUERY_VALUE | KEY_WOW64_32KEY );
+		if ( lResult == ERROR_SUCCESS )
+		{
+			do
+			{
+				SDriverInfo driver;
+				name_length = 64;
+				path_length = MAX_PATH;
+				lResult = RegEnumValue( reg, index++, value_name.GetBuffer( 64 ), &name_length, NULL, &type, (LPBYTE) device_path.GetBuffer( MAX_PATH ), &path_length );
+				if ( lResult == ERROR_MORE_DATA ) continue;
+				if ( lResult != ERROR_SUCCESS ) break;
+				if ( type != REG_SZ ) continue;
+
+				value_name.ReleaseBuffer( name_length );
+				device_path.ReleaseBuffer( path_length );
+
+				if ( !_tcscmp( value_name, _T("midi") ) ||
+					( !_tcsncmp( value_name, _T("midi"), 4 ) &&
+					_tcscmp( value_name, _T("midimapper") ) ) )
+				{
+					hDriver = OpenDriver( value_name, NULL, NULL );
+
+					if ( hDriver )
+					{
+						hModule = GetDriverModuleHandle( hDriver );
+						if ( hModule )
+						{
+							themodMessage = (pmodMessage) GetProcAddress( hModule, "modMessage" );
+							if ( themodMessage )
+							{
+								driver_count = themodMessage( 0, MODM_GETNUMDEVS, NULL, NULL, NULL );
+
+								for ( driver_number = 0; driver_number < driver_count; driver_number++ )
+								{
+									hResult = themodMessage( driver_number, MODM_GETDEVCAPS, NULL, reinterpret_cast<DWORD_PTR>( &driver_caps ), sizeof(driver_caps) );
+									if ( hResult == MMSYSERR_NOERROR )
+									{
+										driver.driver_names.Add( CString( driver_caps.szPname ) );
+										synthlist.AddString( driver_caps.szPname );
+									}
+								}
+
+								if ( driver.driver_names.GetSize() )
+								{
+									if ( !_tcscmp( value_name, _T("midi") ) )
+									{
+										default_found = TRUE;
+									}
+									else if ( !default_found )
+									{
+										default_index += driver.driver_names.GetSize();
+									}
+
+									driver.driver_path = device_path;
+
+									drivers.Add( driver );
+								}
+							}
+						}
+
+						CloseDriver( hDriver, NULL, NULL );
+					}
+					else
+					{
+						driver.driver_path = device_path;
+						driver.driver_names.Add( device_path );
+
+						drivers.Add( driver );
+					}
+				}
+			}
+			while ( lResult == ERROR_SUCCESS || lResult == ERROR_MORE_DATA );
+		}
+		synthlist.SetCurSel( default_index );
 	}
 };
 
