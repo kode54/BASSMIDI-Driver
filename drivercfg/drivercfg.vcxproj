@@ -59,10 +59,10 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <IntDir>Debug</IntDir>
-    <OutDir>Debug</OutDir>
     <LinkIncremental>true</LinkIncremental>
     <IncludePath>C:\codere\wtl\include;$(IncludePath)</IncludePath>
+    <OutDir>$(SolutionDir)..\output\</OutDir>
+    <TargetName>bassmididrvcfg</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <IntDir>Debug</IntDir>
@@ -71,11 +71,11 @@
     <IncludePath>C:\codere\wtl\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <IntDir>Release</IntDir>
-    <OutDir>Release</OutDir>
     <LinkIncremental>false</LinkIncremental>
     <LibraryPath>$(LibraryPath)</LibraryPath>
     <IncludePath>C:\codere\wtl\include;$(IncludePath)</IncludePath>
+    <OutDir>$(SolutionDir)..\output\</OutDir>
+    <TargetName>bassmididrvcfg</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <IntDir>Release</IntDir>
@@ -89,18 +89,18 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-      <MinimalRebuild>true</MinimalRebuild>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_WINDOWS;STRICT;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>../external_packages</AdditionalIncludeDirectories>
+      <MinimalRebuild>false</MinimalRebuild>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <TargetMachine>MachineX86</TargetMachine>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>..\output\bassmididrvcfg.exe</OutputFile>
     </Link>
     <ResourceCompile>
       <Culture>0x0409</Culture>
@@ -163,6 +163,7 @@
       <DebugInformationFormat>
       </DebugInformationFormat>
       <PreprocessorDefinitions>WIN32;_WINDOWS;STRICT;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>../external_packages</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -171,7 +172,6 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <UACExecutionLevel>RequireAdministrator</UACExecutionLevel>
       <AllowIsolation>true</AllowIsolation>
-      <OutputFile>..\output\bassmididrvcfg.exe</OutputFile>
     </Link>
     <ResourceCompile>
       <Culture>0x0409</Culture>
