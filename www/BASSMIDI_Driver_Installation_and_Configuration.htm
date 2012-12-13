@@ -1,0 +1,110 @@
+<html>
+<head>
+<meta name="Author" content="Rich ¥Weeds¥ Nagel">
+<meta name="Description" content="Twelve Steps to NoteWorthy Composer MIDI Music Goodness!">
+<meta name="Keywords" content="Twelve Steps to NoteWorthy Composer MIDI Music Goodness!">
+<link rel="shortcut icon" href="BASS_Audio_Library.ico" type="image/x-icon">
+<title>Twelve Steps to NoteWorthy Composer MIDI Music Goodness!</title>
+<style>a:hover {color: #FF0000}</style>
+</head>
+<!-- body bgcolor="#FFFFFF" text="#000000" link="#0000FF" vlink="#0000FF" alink="#FF0000" -->
+<body background="BASSMIDI_Driver_Background.gif" bgproperties="fixed" bgcolor="#DCE6F0" text="#000000" link="#0000FF" vlink="#0000FF" alink="#FF0000">
+<h2><u>Twelve Steps to NoteWorthy Composer MIDI Music Goodness!</u></h2>
+<p>The following step-by-step instructions describe in detail the installation and configuration of Kode54's and MudLord's freeware "<i>BASSMIDI SoundFont Compatible MIDI Synthesizer Driver</i>" for Windows for use with "<i>NoteWorthy Composer</i>". Note that these instructions can also be used with <i>almost any</i> Windows MIDI sequencer or Windows MIDI music player program, as the installation and configuration of the BASSMIDI Driver is <i>almost identical</i>.</p>
+<p>More information about the freeware BASSMIDI SoundFont Compatible MIDI Synthesizer Driver (and all of it's features) can be found at <b><a href="http://www.mudlord.info/bassmididrv">http://www.mudlord.info/bassmididrv</a></b> or <b><a href="http://jasonwilliams400com.startlogic.com/snor/weeds/SoundFonts/XMPlay/XMPlay.htm#bassmididriver">http://jasonwilliams400com.startlogic.com/snor/weeds/SoundFonts/XMPlay/XMPlay.htm#bassmididriver</a></b>.</p>
+<p>Refer to the "<i>BASSMIDI Driver MIDI Implementation Chart</i>" at <b><a href="http://www.mudlord.info/bassmididrv/BASSMIDI_Driver_MIDI_Implementation_Chart.htm">http://www.mudlord.info/bassmididrv/BASSMIDI_Driver_MIDI_Implementation_Chart.htm</a></b> or <b><a href="http://jasonwilliams400com.startlogic.com/snor/weeds/SoundFonts/XMPlay/BASSMIDI_Driver_MIDI_Implementation_Chart.htm">http://jasonwilliams400com.startlogic.com/snor/weeds/SoundFonts/XMPlay/BASSMIDI_Driver_MIDI_Implementation_Chart.htm</a></b> for a complete list of MIDI controllers, functions, and System Exclusive messages that the BASSMIDI Driver supports.</p>
+<p><ol><li><p>First, you will need to download a quality SoundFont file to use with the BASSMIDI SoundFont Compatible MIDI Synthesizer Driver:</p>
+<p><font size="-1"><i>[ShamelessPlugMode=ON]</i></font><br>
+<font size="-1"><i>Made for composers and musicians, by a composer and musician...</i></font></p>
+<p>My own custom freeware SoundFont "<i>¥Weeds¥ General MIDI SoundFont v3.0</i>" (<i>54.9 megabytes</i>) sounds great with the BASSMIDI Driver. More information about this SoundFont can be found at my web page at <b><a href="http://www.richnagel.net/#soundfonts">http://www.richnagel.net/#soundfonts</a></b>, and you can download the SoundFont directly from <b><a href="http://www.un4seen.com/download.php?extra/WeedsGM3.zip">http://www.un4seen.com/download.php?extra/WeedsGM3.zip</a></b>.</p>
+<p>After downloading and unzipping the ZIP archive "<i>WeedsGM3.zip</i>", run the included "<i>WeedsGM3.sfArk.exe</i>" installation program to extract the SoundFont ("<i>WeedsGM3.sf2</i>") and documentation ("<i>WeedsGM3.txt</i>" and "<i>WeedsGM3.License.txt</i>"). Note that the "<i>WeedsGM3.sfArk.exe</i>" installation program is nothing but a simple self-extracting "<i>sfArk</i>" archive, and using the sfArk utility to package the files resulted in much better compression of the included SoundFont and files than when using other archive compression utilities (such as "<i>ACE</i>", "<i>RAR</i>", "<i>ZIP</i>", etc...).<br>
+<font size="-1"><i>[ShamelessPlugMode=OFF]</i></font></p>
+<p>Other available alternative freeware SoundFonts include (<font color="#FF0000" size="4">*</font> = <i>Useful for emulating various MIDI modules and sound cards</i>):</p>
+<p>"<i>General MIDI</i>" AWE32 ROM Dump SoundFont, by E-mu Systems (<i>1.1 megabytes</i>) <font color="#FF0000" size="4">*</font><br>
+<b><a href="http://heretics-hexens.ucoz.com/1mgm.sf2">http://heretics-hexens.ucoz.com/1mgm.sf2</a></b><br>
+<b><a href="http://connect.creativelabs.com/developer/SoundFont/SoundFont Librarian.zip">http://connect.creativelabs.com/developer/SoundFont/SoundFont Librarian.zip</a></b> (<i>SFLib10c.zip</i>)</p>
+<p>"<i>GS Sound Set (GM.dls)</i>" Sound Canvas SoundFont, by Roland (<i>3.5 megabytes</i>) <font color="#FF0000" size="4">*</font><br>
+<b><a href="http://soundfonts.homemusician.net/collections_soundfonts/roland_gs_soundset.html">http://soundfonts.homemusician.net/collections_soundfonts/roland_gs_soundset.html</a></b></p>
+<p>"<i>Gravis Ultrasound Classic Patch Set v1.6b</i>" Gravis Ultrasound SoundFont, by Arek Rak (<i>5.9 megabytes</i>) <font color="#FF0000" size="4">*</font><br>
+<b><a href="http://www.rarek.ceron.pl/gus.htm">http://www.rarek.ceron.pl/gus.htm</a></b></p>
+<p>"<i>8MBGM E-mu Rev B (EmuAPS8.sf2/8MBGM.sf2)</i>" SoundFont, by E-mu Systems (<i>7.6 megabytes</i>)<br>
+<b><a href="http://www.helpdrivers.com/sound/E-MU/Audio_Production_Studio_8mb_E-MU_GM_SoundFont_Bank/">http://www.helpdrivers.com/sound/E-MU/Audio_Production_Studio_8mb_E-MU_GM_SoundFont_Bank/</a></b></p>
+<p>"<i>Roland SC-55 v1.1 (GM.dls)</i>" Sound Canvas SoundFont, by DJ Tony (<i>9.9 megabytes</i>) <font color="#FF0000" size="4">*</font><br>
+<b><a href="http://www.mediafire.com/?a6qn1tc811b2ce1">http://www.mediafire.com/?a6qn1tc811b2ce1</a></b></p>
+<p>"<i>Chorium Revision A</i>" SoundFont, by Open World (<i>28.9 megabytes</i>)<br>
+<b><a href="http://www.un4seen.com/download.php?extra/ChoriumRevA.rar">http://www.un4seen.com/download.php?extra/ChoriumRevA.rar</a></b></p>
+<p>"<i>General User GS</i>" SoundFont, by Chris Collins (<i>31.3 megabytes</i>)<br>
+<b><a href="http://www.schristiancollins.com/generaluser.php">http://www.schristiancollins.com/generaluser.php</a></b></p>
+<p>"<i>OPL-3 FM 128M</i>" Sound Blaster 16 FM Synthesis SoundFont, by Zandro Reveille (<i>135 megabytes</i>) <font color="#FF0000" size="4">*</font><br>
+<b><a href="http://woolyss.com/chipmusic/chipmusic-soundfonts/OPL-3_FM_128M.zip">http://woolyss.com/chipmusic/chipmusic-soundfonts/OPL-3_FM_128M.zip</a></b><br>
+<b><a href="ftp://fm:fm@atomu.ath.cx:6872/OPL-3 FM 128M.sfpack">ftp://fm:fm@atomu.ath.cx:6872/OPL-3 FM 128M.sfpack</a></b></p>
+<p>"<i>Fluid R3 GM</i>" SoundFont, by Frank Wen (<i>148.4 megabytes</i>)<br>
+<b><a href="http://soundfonts.homemusician.net/collections_soundfonts/fluid_release_3.html">http://soundfonts.homemusician.net/collections_soundfonts/fluid_release_3.html</a></b></p>
+<p>"<i>Arachno SoundFont v1.0</i>" SoundFont, by Maxime Abbey (<i>155.4 megabytes</i>)<br>
+<b><a href="http://www.arachnosoft.com/main/download.php?id=soundfont">http://www.arachnosoft.com/main/download.php?id=soundfont</a></b></p>
+<p>"<i>SGM v2.01</i>" SoundFont, by David Shan (<i>247.4 megabytes</i>)<br>
+<b><a href="http://www.geocities.jp/shansoundfont">http://www.geocities.jp/shansoundfont</a></b></p>
+<p><font size="-1"><i>[In my (not so) humble opinion...]</i></font><br>
+There are many more alternative freeware SoundFonts of varying quality that can be downloaded from the Internet and used with BASSMIDI SoundFont Compatible MIDI Synthesizer Driver... but quite a few of them are really not worth your time or effort. Their relatively unbalanced and low-quality overall sound simply does not justify their <i>extremely large</i> filesizes.</p>
+<p>A small list of these SoundFonts include:</p>
+<p>"<i>Airfont 380</i>" SoundFont, by Milton Paredes (<i>276 megabytes</i>)<br>
+"<i>Titanic 200 SoundFont v1.2</i>" SoundFont, by Luke Sena (<i>280 megabytes</i>)<br>
+"<i>Crisis General MIDI v3.0</i>" SoundFont, by Christophe Maricourt (<i>1.6 gigabytes</i>)</p>
+<p>Again, this is simply <i>my (not so) humble opinion</i>...</p></li>
+<p><li>Download the latest released version of the "BASSMIDI SoundFont Compatible MIDI Synthesizer Driver" from <b><a href="http://www.mudlord.info/bassmididrv/bassmididrv.exe">http://www.mudlord.info/bassmididrv/bassmididrv.exe</a></b>. Optionally (after complete installation of the BASSMIDI Driver), refer to the "<i>Optional BASS and BASSMIDI Audio Library Updates</i>" section below.</p>
+<p>Note that for any real-time usage (such as using the BASSMIDI Driver for a real-time performance, or for real-time MIDI sequencing), it is recommended to install and use the latest released version of the BASSMIDI Driver. The latest released version of the driver exhibits the same low latency that can be seen in the older versions 1.x of the driver. Note that versions 2.x of the BASSMIDI Driver had approximately 0.105 seconds of latency, while versions 1.x and 3.x (and newer) of the driver has less than 0.05 seconds of latency.</p>
+<p>Nevertheless, if for some reason that you wish to install and use an older version of the driver, you can download older versions of the BASSMIDI Driver from <b><a href="http://www.mudlord.info/bassmididrv/archive">http://www.mudlord.info/bassmididrv/archive</a></b> or <b><a href="http://jasonwilliams400com.startlogic.com/snor/weeds/SoundFonts/BASSMIDI_Driver/">http://jasonwilliams400com.startlogic.com/snor/weeds/SoundFonts/BASSMIDI_Driver/</a></b>.
+<p><li>If you have previously installed an older version of the BASSMIDI Driver, uninstall it first (look in your Windows Start Menu for "<i>BASSMIDI System Synth</i> -> <i>Uninstall</i>"), and then reboot your computer (if not prompted to do so by the installer).</li></p>
+<p><img src="BASSMIDI_Driver_Uninstall.gif"></p>
+<p><li>Run the "<i>BASSMIDIDrv.exe</i>" installation program that you previously downloaded to install the BASSMIDI SoundFont Compatible MIDI Synthesizer Driver. Again, reboot your computer (if not prompted to do so by the installer)</li></p>
+<p><img src="BASSMIDI_Driver_Install.gif"></p>
+<p><li>Run the BASSMIDI Driver Configuration Utility (look in your Windows Start Menu for "<i>BASSMIDI System Synth</i> -> <i>Configure Driver</i>").</li></p>
+<p><li>Click the "<i>Add</i>" button within the "<i>SoundFonts</i>" section of the BASSMIDI Driver Configuration Utility, and browse around your hard drive to the directory where you installed or unzipped the SoundFont. Next, click to select the SoundFont, click the "<i>Open</i>" button within the Windows "<i>Open</i>" dialog box, and then click the "<i>Apply</i>" button directly below the lower-right of the "<i>SoundFonts</i>" list box.</li></p>
+<p><img src="BASSMIDI_Driver_Configuration_Utility_SoundFonts_Settings.gif"></p>
+<p><li>Click the "<i>Advanced</i>" tab at the top of the BASSMIDI Driver Configuration Utility. Then select the "<i>BASSMIDI Driver</i>" from the "<i>Default MIDI Synth</i>" dropdown box, and click the "<i>Apply</i>" button directly below the dropdown box. If you have any problems with this step, refer to the "<i>Additional Configuration Note</i>" sections below.</li></p>
+<p>Optionally you can adjust the driver's master "<i>Volume</i>" slider to your liking, as well as enabling sinc interpolation by checking the "<i>Use sinc interpolation</i>" check box if you wish.</p>
+<p><img src="BASSMIDI_Driver_Configuration_Utility_Advanced_Settings.gif"></p>
+<p><li>After closing the BASSMIDI Driver Configuration Utility, start NoteWorthy Composer.</li></p>
+<p><li>Click "<i>Tools</i> -> <i>Options</i>" in NoteWorthy Composer's top menu bar, and then click the "<i>MIDI</i>" tab.</li></p>
+<p><img src="BASSMIDI_Driver_NoteWorthy_Composer_Tools_Options_Menu.gif"></p>
+<p><li>Select the "<i>BASSMIDI Driver</i>" from the "<i>Available Play Devices</i>" dialog box, and then click the "<b>---></b>" button to add the driver to the "<i>Devices Used By Playback</i>" dialog box. Note that you will probably wish to remove any other MIDI playback devices listed within the "<i>Devices Used By Playback</i>" dialog box when using the BASSMIDI Driver.</li></p>
+<p><img src="BASSMIDI_Driver_NoteWorthy_Composer_MIDI_Device_Configuration.gif"></p>
+<p><li>Click the "<i>OK</i>" button.</li></p>
+<p><li><b>Congratulations, you're all finished!</b></li></p></ol></p>
+<p><hr></p>
+<h3><u>Additional Configuration Note for Windows XP</u></h3>
+<p>If you have any problems selecting the "BASSMIDI Driver" as the default Windows MIDI music playback device from within the BASSMIDI Driver Configuration Utility, you can to manually change the active MIDI device from within the Windows XP "<i>Sounds and Audio Devices Properties</i>" control panel applet (click "<i>Start</i> -> <i>Control Panel</i> -> <i>Sounds and Audio Devices</i> -> <i>Audio</i> -> <i>MIDI Music Playback Default Device</i>").</p>
+<p><img src="BASSMIDI_Driver_Windows_Sounds_and_Audio_Devices_Properties.gif"></p>
+<p><hr></p>
+<h3><u>Additional Configuration Note for Windows Vista and Windows 7</u></h3>
+<p>If you have any problems selecting the "BASSMIDI Driver" as the default Windows MIDI music playback device from within the BASSMIDI Driver Configuration Utility, the "<i>Windows Vista MIDI Picker</i>" utility can be of help. You can download the utility from <b><a href="http://software.bootblock.co.uk/?id=vistamidipicker">http://software.bootblock.co.uk/?id=vistamidipicker</a></b>.</p>
+<p><img src="BASSMIDI_Driver_Windows_Vista_MIDI_Picker.gif"></p>
+<p>Another alternative is the "<i>Putzlowitschs Vista MIDI Mapper</i>" control panel applet. You can download the newest version of the applet from <b><a href="http://akkordwechsel.de/15-windows-vista-und-der-midi-mapper">http://akkordwechsel.de/15-windows-vista-und-der-midi-mapper</a></b>. Note that an English description (<i>of an older version</i>) can be found at <b><a href="http://www.brainmaster.com/kb/entry/334">http://www.brainmaster.com/kb/entry/334</a></b>.</p>
+<p><img src="BASSMIDI_Driver_Putzlowitschs_Windows_Vista_MIDI_Mapper.gif"></p>
+<p><hr></p>
+<h3><u>Optional BASS and BASSMIDI Audio Library Updates</u></h3>
+<p>BASS ("<i>BASS.dll</i>") and BASSMIDI ("<i>BASSMIDI.dll</i>") Audio Library updates can be downloaded from <b><a href="http://www.un4seen.com/download.php?bass24">http://www.un4seen.com/download.php?bass24</a></b> and <b><a href="http://www.un4seen.com/download.php?bassmidi24">http://www.un4seen.com/download.php?bassmidi24</a></b> (located at the BASS Audio Library web site at <b><a href="http://www.un4seen.com/bass.html">http://www.un4seen.com/bass.html</a></b> and <b><a href="http://www.un4seen.com/bass.html#addons">http://www.un4seen.com/bass.html#addons</a></b>).</p>
+<p>Alternatively, the newest beta versions (also known as "<i>Stuff</i>" versions) of these audio libraries can be downloaded from <b><a href="http://www.un4seen.com/stuff/bass.dll">http://www.un4seen.com/stuff/bass.dll</a></b> and <b><a href="http://www.un4seen.com/stuff/bassmidi.dll">http://www.un4seen.com/stuff/bassmidi.dll</a></b> (if available).</p>
+<p>Note that installing these updates is entirely optional, and is not required for the proper operation and usage of the BASSMIDI SoundFont Compatible MIDI Synthesizer Driver. Nevertheless, since the BASSMIDI Driver uses the BASS and BASSMIDI Audio Libraries for it's SoundFont synthesis engine, you can optionally download and install these updates if you wish.</p>
+<p>To install these BASS and BASSMIDI Audio Library updates:</p>
+<p><ol><li>Unzip the "BASS24.zip" and "BASSMIDI24.zip" files (or copy the "BASS.dll" and "BASSMIDI.dll" files) that you previously downloaded to a temporary directory on your hard drive.</li>
+<li>Rename the existing files "BASS.dll" and "BASSMIDI.dll" located in the "C:\Windows\System32\BASSMIDIDrv" (or "C:\Windows\SysWow64\BASSMIDIDrv") directory on your hard drive to the new backup file names "BASS.bak" and "BASSMIDI.bak".</li>
+<li>Copy the new updated "BASS.dll" and "BASSMIDI.dll" files that you previously downloaded to the "C:\Windows\System32" (or "C:\Windows\SysWow64") directory on your hard drive.</li>
+<li>Reboot your computer.</li>
+<li>After your computer reboots and Windows restarts, you can optionally delete the old "BASS.bak" and "BASSMIDI.bak" backup files located in the "C:\Windows\System32\BASSMIDIDrv" (or "C:\Windows\SysWow64\BASSMIDIDrv") directory on your hard drive.</li></ol></p>
+<p>Lastly, note that you can also manually upgrade (<i>or downgrade</i>) the actual BASSMIDI Driver itself using this exact same method (<i>although this is NOT recommended</i>). Nevertheless, the following are the files that require renaming (with optional deletion, as explained above):</p>
+<p>"BASSMIDIDrv.dll"<br>
+"BASSMIDIDrvCfg.exe"<br>
+"BASSMIDIDrvUninstall.exe"</p>
+<p>These files will be located in the "C:\Windows\System32\BASSMIDIDrv" (or "C:\Windows\SysWow64\BASSMIDIDrv") directory on your hard drive (similar to updating the BASS and BASSMIDI Audio Libraries, as explained above).</p>
+<p><hr></p>
+<h3><u>In Conclusion</u></h3>
+<p>Although all of this may seem complicated at first (<i>or like a daunting task</i>), it is <b>by far easier</b> than setting up the other commonly known alternatives for non-hardware (<i>software synthesized</i>) MIDI music playback (such as the "<i>Timidity+++</i>" software synthesizer, or the various other "<i>VSTi</i>" options that are available; in conjunction with a "<i>virtual MIDI patch cable</i>" utility) with NoteWorthy Composer (as well as other MIDI sequencers or player programs)... <b>and the overall sound is considerably better to boot (with extremely <i>low latency</i> as well)!</b></p>
+<p><hr></p>
+<p><font size="-1">Rich ¥Weeds¥ Nagel<br>
+<a href="mailto:richnagel@centurylink.net">richnagel@centurylink.net</a><br>
+<a href="http://www.richnagel.net">http://www.richnagel.net</a></font></p>
+<p><font size="-1"><i>August 2, 2012</i><br>
+(<i>Rev. 3.1</i>)</font></p>
+</body>
+</html>

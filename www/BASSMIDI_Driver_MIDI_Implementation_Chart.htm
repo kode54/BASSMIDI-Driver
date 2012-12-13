@@ -1,0 +1,763 @@
+<html>
+<head>
+<meta name="Author" content="Rich ¥Weeds¥ Nagel">
+<meta name="Description" content="BASSMIDI SoundFont Compatible MIDI Synthesizer Driver MIDI Implementation Chart">
+<meta name="Keywords" content="BASSMIDI SoundFont Compatible MIDI Synthesizer Driver MIDI Implementation Chart">
+<link rel="shortcut icon" href="BASS_Audio_Library.ico" type="image/x-icon">
+<title>BASSMIDI SoundFont Compatible MIDI Synthesizer Driver MIDI Implementation Chart</title>
+<style>a:hover {color: #FF0000}</style>
+</head>
+<body background="BASSMIDI_Driver_Background.gif" bgproperties="fixed" bgcolor="#DCE6F0" text="#000000" link="#0000FF" vlink="#0000FF" alink="#FF0000">
+<center>
+<h2>BASSMIDI SoundFont Compatible MIDI Synthesizer Driver<br>
+MIDI Implementation Chart and System Exclusive Messages</h2>
+<p><font size="-1"><b><a href="#midi_implementation">MIDI Implementation Chart</a> | <a href="#rpn_controllers">RPN Controllers</a> | <a href="#nrpn_controllers">NRPN Controllers</a> | <a href="#setup_events">Setup Events Sysex</a> | <a href="#scale_tuning">Scale Tuning Sysex</a></b></font><br>
+<font size="-1"><b><a href="#reverb_types">Reverb Types Sysex</a> | <a href="#reverb_effect_parameters">Reverb Parameters Sysex</a> | <a href="#chorus_types">Chorus Types Sysex</a> | <a href="#chorus_effect_parameters">Chorus Parameters Sysex</a></b></font></p>
+</center>
+<p>The following MIDI implementation chart details the MIDI controllers, functions, and System Exclusive messages that the freeware <b><a href="http://www.mudlord.info/bassmididrv">BASSMIDI SoundFont Compatible MIDI Synthesizer Driver</a></b> for Windows supports. The BASSMIDI Driver utilizes Un4seen Developments' <b><a href="http://www.un4seen.com/bass.html#addons">BASSMIDI Audio Library</a></b> (BASSMIDI.dll) for it's SoundFont synthesis engine, hence the MIDI implementation chart is applicable for the BASSMIDI Audio Library (or any program that utilizes it) as well.</p>
+<p>Note that all of the <b><a href="BASSMIDI_Driver_XGEdit_95_Compatibility.gif">XGEdit 95 Compatible</a></b> parameters shown in <b><a href="BASSMIDI_Driver_XGEdit_95_Compatibility.gif">this image</a></b> displayed in <i>bright green</i> are standard GM/GS MIDI controllers and System Exclusive messages, while all of the parameters shown in <b><a href="BASSMIDI_Driver_XGEdit_95_Compatibility.gif">the image</a></b> displayed in <i>bright yellow</i> are special XG MIDI controllers and System Exclusive messages directly referenced by this document.</p>
+<a name="midi_implementation"></a><h3>MIDI Implementation Chart</h3>
+<table border="1">
+<tr>
+<th colspan="2">Function</th>
+<th>Transmitted</th>
+<th>Received</th>
+<th>Description / Remarks</th>
+</tr>
+<tr>
+<td colspan="2">Basic Channel</td>
+<td>No</td>
+<td>Yes</td>
+<td rowspan="1">1..16</td>
+</tr>
+<tr>
+<td colspan="2">Note Number</td>
+<td>No</td>
+<td>Yes</td>
+<td>0..127</td>
+</tr>
+<tr>
+<td colspan="2">Velocity</td>
+<td>No</td>
+<td>Yes</td>
+<td>Note On</td>
+</tr>
+<tr>
+<td colspan="2">Aftertouch</td>
+<td>No</td>
+<td>Yes</td>
+<td>Channel</td>
+</tr>
+<tr>
+<td colspan="2">Pitch Bend</td>
+<td>No</td>
+<td>Yes</td>
+<td>-8192..0..+8192</td>
+</tr>
+<tr>
+<td colspan="2">Program Change</td>
+<td>No</td>
+<td>Yes</td>
+<td>0..127</td>
+</tr>
+<tr>
+<td rowspan="24">Controller Change</td>
+<td>0</td>
+<td>No</td>
+<td>Yes</td>
+<td>Bank Select</td>
+</tr>
+<tr>
+<td>1</td>
+<td>No</td>
+<td>Yes</td>
+<td>Modulation</td>
+</tr>
+<tr>
+<td>5</td>
+<td>No</td>
+<td>Yes</td>
+<td>Portamento Time</td>
+</tr>
+<tr>
+<td>6</td>
+<td>No</td>
+<td>Yes</td>
+<td>Data entry MSB</td>
+</tr>
+<tr>
+<td>7</td>
+<td>No</td>
+<td>Yes</td>
+<td>Volume</td>
+</tr>
+<tr>
+<td>10</td>
+<td>No</td>
+<td>Yes</td>
+<td>Panning</td>
+</tr>
+<tr>
+<td>11</td>
+<td>No</td>
+<td>Yes</td>
+<td>Expression</td>
+</tr>
+<tr>
+<td>38</td>
+<td>No</td>
+<td>Yes</td>
+<td>Data Entry LSB</td>
+</tr>
+<tr>
+<td>64</td>
+<td>No</td>
+<td>Yes</td>
+<td>Sustain Pedal</td>
+</tr>
+<tr>
+<td>65</td>
+<td>No</td>
+<td>Yes</td>
+<td>Portamento</td>
+</tr>
+<tr>
+<td>67</td>
+<td>No</td>
+<td>Yes</td>
+<td>Soft Pedal</td>
+</tr>
+<tr>
+<td>71</td>
+<td>No</td>
+<td>Yes</td>
+<td>Low-Pass Filter Resonance<br>
+(<b><a href="BASSMIDI_Driver_XGEdit_95_Compatibility.gif">XGEdit 95 Compatible: RES</a></b>)</td>
+</tr>
+<tr>
+<td>72</td>
+<td>No</td>
+<td>Yes</td>
+<td>Release Time<br>
+(<b><a href="BASSMIDI_Driver_XGEdit_95_Compatibility.gif">XGEdit 95 Compatible: AMP EG</a></b>)</td>
+</tr>
+<tr>
+<td>73</td>
+<td>No</td>
+<td>Yes</td>
+<td>Attack Time<br>
+(<b><a href="BASSMIDI_Driver_XGEdit_95_Compatibility.gif">XGEdit 95 Compatible: AMP EG</a></b>)</td>
+</tr>
+<tr>
+<td>74</td>
+<td>No</td>
+<td>Yes</td>
+<td>Low-Pass Filter Cutoff<br>
+(<b><a href="BASSMIDI_Driver_XGEdit_95_Compatibility.gif">XGEdit 95 Compatible: CUTOFF</a></b>)</td>
+</tr>
+<tr>
+<td>84</td>
+<td>No</td>
+<td>Yes</td>
+<td>Portamento Control</td>
+</tr>
+<tr>
+<td>91</td>
+<td>No</td>
+<td>Yes</td>
+<td>Reverb Depth</td>
+</tr>
+<tr>
+<td>93</td>
+<td>No</td>
+<td>Yes</td>
+<td>Chorus Depth</td>
+</tr>
+<tr>
+<td>98, 99</td>
+<td>No</td>
+<td>Yes</td>
+<td>NRPN LSB, MSB</td>
+</tr>
+<tr>
+<td>100, 101</td>
+<td>No</td>
+<td>Yes</td>
+<td>RPN LSB, MSB</td>
+</tr>
+<tr>
+<td>120</td>
+<td>No</td>
+<td>Yes</td>
+<td>All Sounds Off</td>
+</tr>
+<tr>
+<td>121</td>
+<td>No</td>
+<td>Yes</td>
+<td>Reset All Controllers</td>
+</tr>
+<tr>
+<td>123</td>
+<td>No</td>
+<td>Yes</td>
+<td>All Notes Off</td>
+</tr>
+<tr>
+<td>126, 127</td>
+<td>No</td>
+<td>Yes</td>
+<td>Polyphonic Mode (0 = Poly, 1 = Mono)
+</td>
+</tr>
+<tr>
+<td rowspan="18" colspan="2">System Exclusive Messages</td>
+<td rowspan="18">No</td>
+<td rowspan="18">Yes</td>
+</tr>
+<tr>
+<td>GM/GS/XG Mode Reset<br>
+(refer to <b><a href="#setup_events">Setup Events</a></b> below)</td>
+</tr>
+<tr>
+<td>Scale Tuning (GS/XG)<br>
+(refer to <b><a href="#scale_tuning">Scale Tuning</a></b> below)</td>
+</tr>
+<tr>
+<td>Instrument/Drums Channel Switch (GS)</td>
+</tr>
+<tr>
+<td>Master Volume (GS)</td>
+</tr>
+<tr>
+<td>Reverb Type (XG)<br>
+(refer to <b><a href="#reverb_types">Reverb Types</a></b> below)</td>
+</tr>
+<tr>
+<td>Reverb Level (XG)<br>
+(refer to <b><a href="#reverb_effect_parameters">Reverb Parameters</a></b> below)</td>
+</tr>
+<tr>
+<td>Reverb Time (XG)<br>
+(refer to <b><a href="#reverb_effect_parameters">Reverb Parameters</a></b> below)</td>
+</tr>
+<tr>
+<td>Reverb Initial Delay (XG)<br>
+(refer to <b><a href="#reverb_effect_parameters">Reverb Parameters</a></b> below)</td>
+</tr>
+<tr>
+<td>Reverb High-Pass Cutoff (XG)<br>
+(refer to <b><a href="#reverb_effect_parameters">Reverb Parameters</a></b> below)</td>
+</tr>
+<tr>
+<td>Reverb Low-Pass Cutoff (XG)<br>
+(refer to <b><a href="#reverb_effect_parameters">Reverb Parameters</a></b> below)</td>
+</tr>
+<tr>
+<td>Chorus Type (XG)<br>
+(refer to <b><a href="#chorus_types">Chorus Types</a></b> below)</td>
+</tr>
+<tr>
+<td>Chorus Level (XG)<br>
+(refer to <b><a href="#chorus_effect_parameters">Chorus Parameters</a></b> below)</td>
+</tr>
+<tr>
+<td>Chorus Send to Reverb (XG)<br>
+(refer to <b><a href="#chorus_effect_parameters">Chorus Parameters</a></b> below)</td>
+</tr>
+<tr>
+<td>Chorus Modulation Frequency (XG)<br>
+(refer to <b><a href="#chorus_effect_parameters">Chorus Parameters</a></b> below)</td>
+</tr>
+<tr>
+<td>Chorus Modulation Depth (XG)<br>
+(refer to <b><a href="#chorus_effect_parameters">Chorus Parameters</a></b> below)</td>
+</tr>
+<tr>
+<td>Chorus Feedback Level (XG)<br>
+(refer to <b><a href="#chorus_effect_parameters">Chorus Parameters</a></b> below)</td>
+</tr>
+<tr>
+<td>Chorus Modulation Delay Offset (XG)<br>
+(refer to <b><a href="#chorus_effect_parameters">Chorus Parameters</a></b> below)</td>
+</tr>
+</table>
+<a name="rpn_controllers"></a><h3>RPN Controllers</h3>
+<table border="1">
+<tr>
+<th>RPN</th>
+<th>Data entry MSB</th>
+<th>Description / Remarks</th>
+</tr>
+<tr>
+<td>MSB: 0<br>LSB: 0</td>
+<td>0..127</td>
+<td>Pitch Bend Sensitivity<br>
+(Data entry MSB: 0..127 semitones), Initial Value = 2 (2 semitones)</td>
+</tr>
+<tr>
+<td>MSB: 0<br>LSB: 1</td>
+<td>0..64..127</td>
+<td>Master Fine Tuning<br>
+(Data entry MSB: -100..0..+99.99 cents), Initial Value = 64 (0 cent)</td>
+</tr>
+<tr>
+<td>MSB: 0<br>LSB: 2</td>
+<td>0..64..127</td>
+<td>Master Coarse Tuning<br>
+(Data entry MSB: -64..0..+63), Initial Value = 64 (0 semitones)</td>
+</tr>
+</table>
+<a name="nrpn_controllers"></a><h3>NRPN Controllers</h3>
+<table border="1">
+<tr>
+<th>NRPN</th>
+<th>Data entry MSB</th>
+<th>Description / Remarks</th>
+</tr>
+<tr>
+<td>MSB: 1<br>LSB: 32</td>
+<td>0..64..127</td>
+<td>Cutoff Frequency (relative change)<br>
+(Data entry MSB: -64..0..+63)</td>
+</tr>
+<tr>
+<td>MSB: 1<br>LSB: 33</td>
+<td>0..64..127</td>
+<td>Resonance Frequency (relative change)<br>
+(Data entry MSB: -64..0..+63)</td>
+</tr>
+<tr>
+<td>MSB: 20<br>LSB: 0..127</td>
+<td>0..64..127</td>
+<td>Low-Pass Filter Cutoff of drum instrument (relative change on specified drum instrument)<br>
+NRPN LSB: key number of drum instrument<br>
+(Data entry MSB: -64..0..+63 semitones)</td>
+</tr>
+<tr>
+<td>MSB: 21<br>LSB: 0..127</td>
+<td>0..64..127</td>
+<td>Low-Pass Filter Resonance of drum instrument (relative change on specified drum<br>
+instrument)<br>
+NRPN LSB: key number of drum instrument<br>
+(Data entry MSB: -64..0..+63 semitones)</td>
+</tr>
+<tr>
+<td>MSB: 24<br>LSB: 0..127</td>
+<td>0..64..127</td>
+<td>Coarse tuning (pitch) of drum instrument (relative change on specified drum instrument)<br>
+NRPN LSB: key number of drum instrument<br>
+(Data entry MSB: -64..0..+63 semitones)</td>
+</tr>
+<tr>
+<td>MSB: 25<br>LSB: 0..127</td>
+<td>0..64..127</td>
+<td>Fine tuning of drum instrument (relative change on specified drum instrument)<br>
+NRPN LSB: key number of drum instrument<br>
+(Data entry MSB: -100..0..+100 semitones)</td>
+</tr>
+<tr>
+<td>MSB: 26<br>LSB: 0..127</td>
+<td>0..127</td>
+<td>Key volume level of drum instrument (absolute change on specified drum instrument)<br>
+NRPN LSB: key number of drum instrument<br>
+(Data entry MSB: zero-normal/full)</td>
+</tr>
+<tr>
+<td>MSB: 28<br>LSB: 0..127</td>
+<td>0..64..127</td>
+<td>Panpot of drum instrument (absolute change on specified drum instrument)<br>
+NRPN LSB: key number of drum instrument<br>
+(Data entry MSB: Left-Center-Right)</td>
+</tr>
+<tr>
+<td>MSB: 29<br>LSB: 0..127</td>
+<td>0..127</td>
+<td>Reverb send level of drum instrument (absolute change on specified drum instrument)<br>
+NRPN LSB: key number of drum instrument<br>
+(Data entry MSB: zero-maximum)</td>
+</tr>
+<tr>
+<td>MSB: 30<br>LSB: 0..127</td>
+<td>0..127</td>
+<td>Chorus send level of drum instrument (absolute change on specified drum instrument)<br>
+NRPN LSB: key number of drum instrument<br>
+(Data entry MSB: zero-maximum)</td>
+</tr>
+</table>
+<a name="setup_events"></a><h3>Setup Events System Exclusive Messages</h3>
+<table border="1">
+<tr>
+<th>Mode</th>
+<th>System Exclusive Data</th>
+<th>Description / Remarks</th>
+</tr>
+<tr>
+<td>GM Mode On</td>
+<td>F0 7E 7F 09 01 F7</td>
+<td>Enables General MIDI mode</td>
+</tr>
+<tr>
+<td>GS Mode Reset</td>
+<td>F0 41 10 42 12 40 00 7F 00 41 F7</td>
+<td>Resets all General Standard mode parameters</td>
+</tr>
+<tr>
+<td>XG Mode On</td>
+<td>F0 43 10 4C 00 00 7E 00 F7</td>
+<td>Enables Yamaha Extended MIDI mode</td>
+</tr>
+</table>
+<a name="scale_tuning"></a><h3>GS/XG Scale Tuning System Exclusive Messages</h3>
+<table border="1">
+<tr>
+<th>Scale Tuning Key<br>
+(<a href="BASSMIDI_Driver_XGEdit_95_Compatibility.gif">XGEdit 95 Compatible:<br>
+TUNE</a>)</th>
+<th>System Exclusive Data<br>
+(Hex)</th>
+<th colspan="2">MIDI Channel<br>
+(Hex) | (Decimal)</th>
+<th colspan="2">Cents Offset<br>
+(Hex) | (Decimal)</th>
+</tr>
+<tr>
+<td>Scale Tuning C</td>
+<td>F0 43 10 4C 08 <b>Channel</b> 41 <b>Cents</b> F7</td>
+<td><b>00</b>..<b>0F</b></td>
+<td><b>00</b>..<b>15</b></td>
+<td><b>00</b>..<b>40</b>..<b>7F</b></td>
+<td><b>-64</b>..<b>00</b>..<b>+63</b></td>
+</tr>
+<tr>
+<td>Scale Tuning C#</td>
+<td>F0 43 10 4C 08 <b>Channel</b> 42 <b>Cents</b> F7</td>
+<td><b>00</b>..<b>0F</b></td>
+<td><b>00</b>..<b>15</b></td>
+<td><b>00</b>..<b>40</b>..<b>7F</b></td>
+<td><b>-64</b>..<b>00</b>..<b>+63</b></td>
+</tr>
+<tr>
+<td>Scale Tuning D</td>
+<td>F0 43 10 4C 08 <b>Channel</b> 43 <b>Cents</b> F7</td>
+<td><b>00</b>..<b>0F</b></td>
+<td><b>00</b>..<b>15</b></td>
+<td><b>00</b>..<b>40</b>..<b>7F</b></td>
+<td><b>-64</b>..<b>00</b>..<b>+63</b></td>
+</tr>
+<tr>
+<td>Scale Tuning D#</td>
+<td>F0 43 10 4C 08 <b>Channel</b> 43 <b>Cents</b> F7</td>
+<td><b>00</b>..<b>0F</b></td>
+<td><b>00</b>..<b>15</b></td>
+<td><b>00</b>..<b>40</b>..<b>7F</b></td>
+<td><b>-64</b>..<b>00</b>..<b>+63</b></td>
+</tr>
+<tr>
+<td>Scale Tuning E</td>
+<td>F0 43 10 4C 08 <b>Channel</b> 45 <b>Cents</b> F7</td>
+<td><b>00</b>..<b>0F</b></td>
+<td><b>00</b>..<b>15</b></td>
+<td><b>00</b>..<b>40</b>..<b>7F</b></td>
+<td><b>-64</b>..<b>00</b>..<b>+63</b></td>
+</tr>
+<tr>
+<td>Scale Tuning F</td>
+<td>F0 43 10 4C 08 <b>Channel</b> 46 <b>Cents</b> F7</td>
+<td><b>00</b>..<b>0F</b></td>
+<td><b>00</b>..<b>15</b></td>
+<td><b>00</b>..<b>40</b>..<b>7F</b></td>
+<td><b>-64</b>..<b>00</b>..<b>+63</b></td>
+</tr>
+<tr>
+<td>Scale Tuning F#</td>
+<td>F0 43 10 4C 08 <b>Channel</b> 47 <b>Cents</b> F7</td>
+<td><b>00</b>..<b>0F</b></td>
+<td><b>00</b>..<b>15</b></td>
+<td><b>00</b>..<b>40</b>..<b>7F</b></td>
+<td><b>-64</b>..<b>00</b>..<b>+63</b></td>
+</tr>
+<tr>
+<td>Scale Tuning G</td>
+<td>F0 43 10 4C 08 <b>Channel</b> 48 <b>Cents</b> F7</td>
+<td><b>00</b>..<b>0F</b></td>
+<td><b>00</b>..<b>15</b></td>
+<td><b>00</b>..<b>40</b>..<b>7F</b></td>
+<td><b>-64</b>..<b>00</b>..<b>+63</b></td>
+</tr>
+<tr>
+<td>Scale Tuning G#</td>
+<td>F0 43 10 4C 08 <b>Channel</b> 49 <b>Cents</b> F7</td>
+<td><b>00</b>..<b>0F</b></td>
+<td><b>00</b>..<b>15</b></td>
+<td><b>00</b>..<b>40</b>..<b>7F</b></td>
+<td><b>-64</b>..<b>00</b>..<b>+63</b></td>
+</tr>
+<tr>
+<td>Scale Tuning A</td>
+<td>F0 43 10 4C 08 <b>Channel</b> 4A <b>Cents</b> F7</td>
+<td><b>00</b>..<b>0F</b></td>
+<td><b>00</b>..<b>15</b></td>
+<td><b>00</b>..<b>40</b>..<b>7F</b></td>
+<td><b>-64</b>..<b>00</b>..<b>+63</b></td>
+</tr>
+<tr>
+<td>Scale Tuning A#</td>
+<td>F0 43 10 4C 08 <b>Channel</b> 4B <b>Cents</b> F7</td>
+<td><b>00</b>..<b>0F</b></td>
+<td><b>00</b>..<b>15</b></td>
+<td><b>00</b>..<b>40</b>..<b>7F</b></td>
+<td><b>-64</b>..<b>00</b>..<b>+63</b></td>
+</tr>
+<tr>
+<td>Scale Tuning B</td>
+<td>F0 43 10 4C 08 <b>Channel</b> 4C <b>Cents</b> F7</td>
+<td><b>00</b>..<b>0F</b></td>
+<td><b>00</b>..<b>15</b></td>
+<td><b>00</b>..<b>40</b>..<b>7F</b></td>
+<td><b>-64</b>..<b>00</b>..<b>+63</b></td>
+</tr>
+</table>
+<a name="reverb_types"></a><h3>XG Reverb Effect Types System Exclusive Messages (MIDI Controller 91)</h3>
+<table border="1">
+<tr>
+<th>Effect Type<br>
+(<a href="BASSMIDI_Driver_XGEdit_95_Compatibility.gif">XGEdit 95 Compatible:<br>
+EFFECT NAME</a>)</th>
+<th>System Exclusive Data</th>
+<th>Description / Remarks</th>
+</tr>
+<tr>
+<td>Hall 1</td>
+<td>F0 43 10 4C 02 01 00 01 00 F7</td>
+<td>Reverb simulating the resonance of a hall</td>
+</tr>
+<tr>
+<td>Hall 2</td>
+<td>F0 43 10 4C 02 01 00 01 01 F7</td>
+<td>Reverb simulating the resonance of a hall</td>
+</tr>
+<tr>
+<td>Room 1</td>
+<td>F0 43 10 4C 02 01 00 02 00 F7</td>
+<td>Reverb simulating the resonance of a room</td>
+</tr>
+<tr>
+<td>Room 2</td>
+<td>F0 43 10 4C 02 01 00 02 01 F7</td>
+<td>Reverb simulating the resonance of a room</td>
+</tr>
+<tr>
+<td>Room 3</td>
+<td>F0 43 10 4C 02 01 00 02 02 F7</td>
+<td>Reverb simulating the resonance of a room</td>
+</tr>
+<tr>
+<td>Stage 1</td>
+<td>F0 43 10 4C 02 01 00 03 00 F7</td>
+<td>Reverb simulating the resonance of a stage</td>
+</tr>
+<tr>
+<td>Stage 2</td>
+<td>F0 43 10 4C 02 01 00 03 01 F7</td>
+<td>Reverb simulating the resonance of a stage</td>
+</tr>
+<tr>
+<td>Plate</td>
+<td>F0 43 10 4C 02 01 00 04 00 F7</td>
+<td>Reverb simulating a metal-plate reverb unit</td>
+</tr>
+<tr>
+<td>White Room</td>
+<td>F0 43 10 4C 02 01 00 10 00 F7</td>
+<td>Unique short reverb with a bit of initial delay</td>
+</tr>
+<tr>
+<td>Tunnel</td>
+<td>F0 43 10 4C 02 01 00 11 00 F7</td>
+<td>Reverb simulating a tunnel (expanding to left and right)</td>
+</tr>
+<tr>
+<td>Basement</td>
+<td>F0 43 10 4C 02 01 00 13 00 F7</td>
+<td>Reverb simulating a basement (initial delay, followed<br>
+by reverb with unique resonance)</td>
+</tr>
+<tr>
+<td>No Effect</td>
+<td>F0 43 10 4C 02 01 00 00 00 F7</td>
+<td>Reverb effect deactivated</td>
+</tr>
+</table>
+<a name="reverb_effect_parameters"></a><h3>XG Reverb Effect Parameters System Exclusive Messages (MIDI Controller 91)</h3>
+<table border="1">
+<tr>
+<th>Parameter Type<br>
+(<a href="BASSMIDI_Driver_XGEdit_95_Compatibility.gif">XGEdit 95 Compatible</a>)</th>
+<th>System Exclusive Data<br>
+(Hex)</th>
+<th>Range<br>
+(Hex)</th>
+<th>Range<br>
+(Decimal)</th>
+</tr>
+<tr>
+<td>Reverb Level (<b><a href="BASSMIDI_Driver_XGEdit_95_Compatibility.gif">LEVEL</a></b>)</td>
+<td>F0 43 10 4C 02 01 0C <b>40</b> F7</td>
+<td><b>00</b>..<b>7F</b></td>
+<td><b>000</b>..<b>127</b></td>
+</tr>
+<tr>
+<td>Reverb Time (<b><a href="BASSMIDI_Driver_XGEdit_95_Compatibility.gif">TIME</a></b>)</td>
+<td>F0 43 10 4C 02 01 02 <b>12</b> F7</td>
+<td><b>00</b>..<b>45</b></td>
+<td><b>000</b>..<b>069</b></td>
+</tr>
+<tr>
+<td>Reverb Initial Delay (<b><a href="BASSMIDI_Driver_XGEdit_95_Compatibility.gif">I.DEL</a></b>)</td>
+<td>F0 43 10 4C 02 01 04 <b>08</b> F7</td>
+<td><b>00</b>..<b>3F</b></td>
+<td><b>000</b>..<b>063</b></td>
+</tr>
+<tr>
+<td>Reverb High-Pass Cutoff (<b><a href="BASSMIDI_Driver_XGEdit_95_Compatibility.gif">HPF</a></b>)</td>
+<td>F0 43 10 4C 02 01 05 <b>0D</b> F7</td>
+<td><b>00</b>..<b>34</b></td>
+<td><b>000</b>..<b>052</b></td>
+</tr>
+<tr>
+<td>Reverb Low-Pass Cutoff (<b><a href="BASSMIDI_Driver_XGEdit_95_Compatibility.gif">LPF</a></b>)</td>
+<td>F0 43 10 4C 02 01 06 <b>31</b> F7</td>
+<td><b>22</b>..<b>3C</b></td>
+<td><b>034</b>..<b>060</b></td>
+</tr>
+</table>
+<p>Note: The example data bytes shown in the chart above are the default parameters for the "Hall 1" reverb effect type (refer to <b><a href="#reverb_types">Reverb Types</a></b> above).</p>
+<a name="chorus_types"></a><h3>XG Chorus Effect Types System Exclusive Messages (MIDI Controller 93)</h3>
+<table border="1">
+<tr>
+<th>Effect Type<br>
+(<a href="BASSMIDI_Driver_XGEdit_95_Compatibility.gif">XGEdit 95 Compatible:<br>
+EFFECT NAME</a>)</th>
+<th>System Exclusive Data</th>
+<th>Description / Remarks</th>
+</tr>
+<tr>
+<td>Chorus 1</td>
+<td>F0 43 10 4C 02 01 20 41 00 F7</td>
+<td>Conventional chorus effect that adds natural spaciousness</td>
+</tr>
+<tr>
+<td>Chorus 2</td>
+<td>F0 43 10 4C 02 01 20 41 01 F7</td>
+<td>Conventional chorus effect that adds natural spaciousness</td>
+</tr>
+<tr>
+<td>Chorus 3</td>
+<td>F0 43 10 4C 02 01 20 41 02 F7</td>
+<td>Conventional chorus effect that adds natural spaciousness</td>
+</tr>
+<tr>
+<td>Chorus 4</td>
+<td>F0 43 10 4C 02 01 20 41 08 F7</td>
+<td>Chorus with stereo input (using MIDI channel panning setting)</td>
+</tr>
+<tr>
+<td>Celeste 1</td>
+<td>F0 43 10 4C 02 01 20 42 00 F7</td>
+<td>3-phase LFO that adds modulation and spaciousness</td>
+</tr>
+<tr>
+<td>Celeste 2</td>
+<td>F0 43 10 4C 02 01 20 42 01 F7</td>
+<td>3-phase LFO that adds modulation and spaciousness</td>
+</tr>
+<tr>
+<td>Celeste 3</td>
+<td>F0 43 10 4C 02 01 20 42 02 F7</td>
+<td>3-phase LFO that adds modulation and spaciousness</td>
+</tr>
+<tr>
+<td>Celeste 4</td>
+<td>F0 43 10 4C 02 01 20 42 08 F7</td>
+<td>Celeste with stereo input (using MIDI channel panning setting)</td>
+</tr>
+<tr>
+<td>Flanger 1</td>
+<td>F0 43 10 4C 02 01 20 43 00 F7</td>
+<td>Conventional flanger effect that adds a jet-engine effect</td>
+</tr>
+<tr>
+<td>Flanger 2</td>
+<td>F0 43 10 4C 02 01 20 43 01 F7</td>
+<td>Conventional flanger effect that adds a jet-engine effect</td>
+</tr>
+<tr>
+<td>Flanger 3</td>
+<td>F0 43 10 4C 02 01 20 43 08 F7</td>
+<td>Conventional flanger effect that adds a jet-engine effect</td>
+</tr>
+<tr>
+<td>No Effect</td>
+<td>F0 43 10 4C 02 01 20 00 00 F7</td>
+<td>Chorus effect deactivated</td>
+</tr>
+</table>
+<a name="chorus_effect_parameters"></a><h3>XG Chorus Effect Parameters System Exclusive Messages (MIDI Controller 93)</h3>
+<table border="1">
+<tr>
+<th>Parameter Type<br>
+(<a href="BASSMIDI_Driver_XGEdit_95_Compatibility.gif">XGEdit 95 Compatible</a>)</th>
+<th>System Exclusive Data<br>
+(Hex)</th>
+<th>Range<br>
+(Hex)</th>
+<th>Range<br>
+(Decimal)</th>
+</tr>
+<tr>
+<td>Chorus Level (<b><a href="BASSMIDI_Driver_XGEdit_95_Compatibility.gif">LEVEL</a></b>)</td>
+<td>F0 43 10 4C 02 01 2C <b>40</b> F7</td>
+<td><b>00</b>..<b>7F</b></td>
+<td><b>000</b>..<b>127</b></td>
+</tr>
+<tr>
+<td>Chorus Send to Reverb (<b><a href="BASSMIDI_Driver_XGEdit_95_Compatibility.gif">ToREV</a></b>)</td>
+<td>F0 43 10 4C 02 01 2E <b>40</b> F7</td>
+<td><b>00</b>..<b>7F</b></td>
+<td><b>000</b>..<b>127</b></td>
+</tr>
+<tr>
+<td>Chorus Modulation Frequency (<b><a href="BASSMIDI_Driver_XGEdit_95_Compatibility.gif">FREQ</a></b>)</td>
+<td>F0 43 10 4C 02 01 22 <b>06</b> F7</td>
+<td><b>00</b>..<b>7F</b></td>
+<td><b>000</b>..<b>127</b></td>
+</tr>
+<tr>
+<td>Chorus Modulation Depth (<b><a href="BASSMIDI_Driver_XGEdit_95_Compatibility.gif">DEPTH</a></b>)</td>
+<td>F0 43 10 4C 02 01 23 <b>36</b> F7</td>
+<td><b>00</b>..<b>7F</b></td>
+<td><b>000</b>..<b>127</b></td>
+</tr>
+<tr>
+<td>Chorus Feedback Level (<b><a href="BASSMIDI_Driver_XGEdit_95_Compatibility.gif">FB</a></b>)</td>
+<td>F0 43 10 4C 02 01 24 <b>4D</b> F7</td>
+<td><b>01</b>..<b>7F</b></td>
+<td><b>001</b>..<b>127</b></td>
+</tr>
+<tr>
+<td>Chorus Modulation Delay Offset (<b><a href="BASSMIDI_Driver_XGEdit_95_Compatibility.gif">DELAY</a></b>)</td>
+<td>F0 43 10 4C 02 01 25 <b>6A</b> F7</td>
+<td><b>00</b>..<b>7F</b></td>
+<td><b>000</b>..<b>127</b></td>
+</tr>
+</table>
+<p>Note: The example data bytes shown in the chart above are the default parameters for the "Chorus 1" chorus effect type (refer to <b><a href="#chorus_types">Chorus Types</a></b> above).</p>
+<p><hr></p>
+<p><font size="-1">Rich ¥Weeds¥ Nagel<br>
+<a href="mailto:richnagel@centurylink.net">richnagel@centurylink.net</a><br>
+<a href="http://www.richnagel.net">http://www.richnagel.net</a></font></p>
+<p><font size="-1"><i>August 2, 2012</i><br>
+(<i>Rev. 3.1</i>)</font></p>
+</body>
+</html>

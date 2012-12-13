@@ -1,0 +1,141 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+
+<meta name="Author" content="Rich ¥Weeds¥ Nagel">
+<meta name="Description" content="BASSMIDI: The Freeware MIDI Driver!">
+<meta name="Keywords" content="BASSMIDI: The Freeware MIDI Driver!">
+<link rel="shortcut icon" href="BASS_Audio_Library.ico" type="image/x-icon"><title>BASSMIDI: The Freeware MIDI Driver!</title>
+
+<style>a:hover {color: #FF0000}</style></head><body bgproperties="fixed" alink="#ff0000" background="BASSMIDI_Driver_Background.gif" bgcolor="#dce6f0" link="#0000ff" text="#000000" vlink="#0000ff">
+<h2>BASSMIDI: The Freeware MIDI Driver!</h2>
+<p><b><a href="#bassmididriver">BASSMIDI Driver</a> | <a href="#bassmididriverscreenshots">BASSMIDI Driver Screenshots</a> | <a href="#bassmididriverdownloads">BASSMIDI Driver Downloads and Internet Links</a></b><br>
+<b><a href="BASSMIDI_Driver_MIDI_Implementation_Chart.htm">BASSMIDI Driver MIDI Implementation Chart</a> | <a href="BASSMIDI_Driver_Installation_and_Configuration.htm">BASSMIDI Driver Installation and Configuration Instructions</a></b></p>
+<p><b><a href="#otherdownloads">Other Downloads and Internet Links</a></b></p>
+<a name="bassmididriver"></a><p></p><hr size="5"><p></p>
+<h3>BASSMIDI SoundFont Compatible MIDI Synthesizer Driver</h3>
+<p><a href="http://www.un4seen.com/bass.html"><img src="BASS_Audio_Library.gif" alt="BASS Audio Library Web Site" border="0" height="52" width="106"></a></p>
+<p>The BASSMIDI MIDI synthesizer driver is a freeware SoundFont based Windows MIDI system driver (created by <a href="http://kode54.foobar2000.org">kode54</a> and <a href="http://www.mudlord.info">Mudlord</a>) for Windows XP, Windows Vista, and Windows 7. It uses the <a href="http://www.un4seen.com/bass.html">BASS</a> and <a href="http://www.un4seen.com/bass.html#addons">BASSMIDI</a> audio libraries by Ian Luck (<a href="http://www.un4seen.com">Un4seen Developments</a>) as the SoundFont synthesizer, and includes a BASSMIDI Driver Configuration Utility, as well as a SoundFont Packer Utility.</p>
+<p>The BASSMIDI SoundFont compatible MIDI synthesizer driver features:</p>
+<p></p><ul><li>Dynamic sample caching (so it's super efficient with RAM usage).</li>
+<li>Unlimited polyphony.</li>
+<li>Support for compressed SoundFonts.</li>
+<li>SoundFont chaining and stacking (using a simple list file "BASSMIDI.SFList").</li>
+<li>Global volume slider to set the master BASSMIDI Driver MIDI playback volume.</li>
+<li>Supports sinc interpolation for SoundFont MIDI synthesis.</li>
+<li>Device selector to select the default Windows MIDI synthesizer device.</li>
+<li>Works on Windows XP, Windows Vista, and Windows 7, including 64-bit versions.</li>
+<li>Extremely low latency (<i>almost zero</i>, depending on CPU speed
+and operating system, and BASSMIDI Driver version); perfect for
+real-time performance, as well as MIDI sequencing (with a MIDI
+sequencer such as <a href="http://www.richnagel.net#cakewalk">Cakewalk Professional v3.01</a>).</li>
+<li>The best sounding SoundFont compatible software synthesizer, <i>hands down</i>... with the closest sounding MIDI playback to <i>real</i> E-mu SoundFont hardware available!</li></ul><p></p>
+<p></p><ul><li>Support for SF2Pack SoundFonts (with lossy or lossless compressed samples) with the following encoders:</li>
+<ul><li>FLAC</li>
+<li>LAME (MP3)<br>
+</li>
+<li>Musepack <br>
+</li>
+<li>Opus</li>
+<li>WavPack<br>
+</li>
+<li>Ogg Vorbis <br>
+</li></ul></ul><p></p>
+<p></p><ul><li>Support for the following MIDI controllers and events:</li>
+<ul><li>MIDI note events.</li>
+<li>MIDI program events.</li>
+<li>Master volume level.</li>
+<li>Channel pressure.</li>
+<li>Pitch wheel.</li>
+<li>Bank change MSB (CC#0).</li>
+<li>Modulation (CC#1).</li>
+<li>Portamento (CC#65, CC#84, and CC#5).</li>
+<li>Volume (CC#7).</li>
+<li>Panning (CC#10).</li>
+<li>Expression (CC#11).</li>
+<li>Sustain pedal (CC#64).</li>
+<li>Soft pedal (CC#67).</li>
+<li>Low-pass filter resonance (CC#71 or NRPN 121h).</li>
+<li>Release time (CC#72 or NRPN 166h).</li>
+<li>Attack time (CC#73 or NRPN 163h).</li>
+<li>Low-pass filter cut-off (CC#74 or NRPN 120h).</li>
+<li>Reverb send level (CC#91).</li>
+<li>Chorus send level (CC#93).</li>
+<li>Stop all sounds (CC#120).</li>
+<li>Reset all controllers (CC#121).</li>
+<li>Release all keys (CC#123).</li>
+<li>Mono/poly mode (CC#126 and CC#127, respectively).</li>
+<li>Pitch wheel range (RPN 0).</li>
+<li>Fine tuning (RPN 1).</li>
+<li>Coarse tuning (RPN 2).</li></ul></ul><p></p>
+<p></p><ul><li>Support for the following MIDI events (if GS or GM2 mode is activated):</li>
+<ul><li>Drum key low-pass filter cut-off (NRPN 14knh).</li>
+<li>Drum key low-pass filter resonance (NRPN 15knh).</li>
+<li>Drum key coarse tune (NRPN 18knh).</li>
+<li>Drum key fine tune (NRPN 19knh).</li>
+<li>Drum key volume level (NRPN 1Aknh).</li>
+<li>Drum key panning (NRPN 1Cknh).</li>
+<li>Drum key reverb send level (NRPN 1Dknh).</li>
+<li>Drum key chorus send level (NRPN 1Eknh).</li></ul></ul><p></p>
+<p>The BASSMIDI SoundFont compatible MIDI synthesizer driver supports
+GM, GM2, GS, and XG reset System Exclusive messages; as well as the
+drum channel enabling features of GS and XG when switched into those
+modes.</p>
+<p>The driver also supports GS and XG reverb preset control messages (e.g. "<i>Hall 1</i>", "<i>Plate</i>", "<i>Tunnel</i>",
+etc...) for adjusting reverb time, reverb delay, reverb low-pass
+cut-off, reverb high-pass cut-off, and reverb level; as well as chorus
+preset control messages (e.g. "<i>Chorus 1</i>", "<i>Celeste 1</i>", "<i>Flanger 1</i>",
+etc...) for adjusting chrorus delay, chorus depth, chorus rate, chorus
+feedback, chorus level, and chorus to reverb send level.</p>
+<p>Refer to the <a href="BASSMIDI_Driver_MIDI_Implementation_Chart.htm">BASSMIDI Driver MIDI Implementation Chart</a> for a complete list of MIDI controllers, functions, and System Exclusive messages that the BASSMIDI Driver supports.</p>
+<p>Refer to the <a href="BASSMIDI_Driver_Installation_and_Configuration.htm">BASSMIDI Driver Installation and Configuration Instructions</a> for complete installation instructions and usage information for the BASSMIDI Driver.</p>
+<a name="bassmididriverscreenshots"></a><p></p><hr size="1"><p></p>
+<h3>BASSMIDI Driver Screenshots</h3>
+<h4>Driver Configuration Utility SoundFonts Settings<br>
+<a href="#bassmididriverdownloads"><img src="BASSMIDI_Driver_Configuration_Utility_SoundFonts_Settings.gif" alt="BASSMIDI Driver Configuration Utility SoundFonts Settings" border="0" height="310" width="390"></a></h4>
+<h4>Driver Configuration Utility Advanced Settings<br>
+<a href="#bassmididriverdownloads"><img src="BASSMIDI_Driver_Configuration_Utility_Advanced_Settings.gif" alt="BASSMIDI Driver Configuration Utility Advanced Settings" border="0" height="310" width="390"></a></h4>
+<h4>Windows Sounds and Audio Devices Properties<br>
+<a href="#bassmididriverdownloads"><img src="BASSMIDI_Driver_Windows_Sounds_and_Audio_Devices_Properties.gif" alt="BASSMIDI Driver Windows Sounds and Audio Devices Properties" border="0" height="368" width="367"></a></h4>
+<h4>Windows Legacy Audio Drivers Properties<br>
+<a href="#bassmididriverdownloads"><img src="BASSMIDI_Driver_Windows_Legacy_Audio_Drivers_Properties.gif" alt="BASSMIDI Driver Windows Legacy Audio Drivers Properties" border="0" height="234" width="370"></a></h4>
+<h4>Cakewalk Professional v3.01 MIDI Device Configuration<br>
+<a href="http://www.richnagel.net#cakewalk"><img src="BASSMIDI_Driver_Cakewalk_Professional_v3.01_MIDI_Device_Configuration.gif" alt="BASSMIDI Driver Cakewalk Professional v3.01 MIDI Device Configuration" border="0" height="352" width="598"></a></h4>
+<h4>NoteWorthy Composer MIDI Device Configuration<br>
+<a href="#bassmididriverdownloads"><img src="BASSMIDI_Driver_NoteWorthy_Composer_MIDI_Device_Configuration.gif" alt="BASSMIDI Driver NoteWorthy Composer MIDI Device Configuration" border="0" height="234" width="422"></a></h4>
+<h4>Synthesia MIDI Device Configuration<br>
+<a href="#bassmididriverdownloads"><img src="BASSMIDI_Driver_Synthesia_MIDI_Device_Configuration.gif" alt="BASSMIDI Driver Synthesia MIDI Device Configuration" border="0" height="233" width="758"></a></h4>
+<h4>BASSMIDI Driver v1.x and v3.x Low Latency<br>
+<a href="#bassmididriverdownloads"><img src="BASSMIDI_Driver_v1.x_and_v3.x_Low_Latency.gif" alt="BASSMIDI Driver v1.x and v3.x Low Latency" border="0" height="294" width="686"></a></h4>
+<h4>BASSMIDI Driver v2.x Latency<br>
+<a href="#bassmididriverdownloads"><img src="BASSMIDI_Driver_v2.x_Latency.gif" alt="BASSMIDI Driver v2.x Latency" border="0" height="294" width="686"></a></h4>
+<h4>XGEdit 95 Compatibility<br>
+<a href="#bassmididriverdownloads"><img src="BASSMIDI_Driver_XGEdit_95_Compatibility.gif" alt="BASSMIDI Driver XGEdit 95 Compatibility" border="0" height="622" width="728"></a></h4>
+<p>Refer to the <a href="BASSMIDI_Driver_MIDI_Implementation_Chart.htm">BASSMIDI Driver MIDI Implementation Chart</a>
+for a complete list of XGEdit 95 compatible MIDI controllers,
+functions, and System Exclusive messages that the BASSMIDI Driver
+supports.</p>
+<p>Note that all of the XGEdit 95 compatible parameters displayed above in <i>bright green</i> are standard GM/GS MIDI controllers and System Exclusive messages, while all of the parameters displayed above in <i>bright yellow</i> are special XG MIDI controllers and System Exclusive messages directly referenced by the <a href="BASSMIDI_Driver_MIDI_Implementation_Chart.htm">BASSMIDI Driver MIDI Implementation Chart</a>.</p>
+<a name="bassmididriverdownloads"></a><p></p><hr size="1"><p></p>
+<h3>BASSMIDI Driver Discussion, Downloads, and Internet Links</h3>
+<p><b><a href="http://www.hydrogenaudio.org/forums/index.php?showtopic=87639">Hydrogen Audio Forums</a> | <a href="http://www.vgmusic.com/phpBB3/viewtopic.php?f=16&amp;t=13967">Video Games Music Forums</a> | <a href="http://www.un4seen.com/forum/?topic=5337.0">XMPlay Forums</a><br>
+<a href="http://www.doomworld.com/vb/everything-else/54851-bassmidi-soundfont-compatible-midi-synthesiser-driver-for-windows-xp-vista-7">DOOM World Forums</a> | <a href="http://my.noteworthysoftware.com/?topic=7672.0">NoteWorthy Software Forums</a> | <a href="http://queststudios.com/smf/index.php/topic,3329.0.html">Quest Studios Forums</a><br>
+<a href="http://www.synthesiagame.com/forum/viewtopic.php?f=3&amp;t=2955">Synthesia Forums</a> | <a href="http://vogons.zetafleet.com/viewtopic.php?t=27975">VOGONS Forums</a> | <a href="http://forum.zdoom.org/viewtopic.php?f=4&amp;t=29290">ZDOOM Forums</a></b></p>
+<p><b><a href="http://www.mudlord.info/bassmididrv">Mudlord's Web Site (<i>Newest Version</i>)</a> | <a href="http://www.mudlord.info/bassmididrv/bassmididrv.exe">Download BASSMIDI Driver</a> | <a href="https://github.com/kode54/BASSMIDI-Driver/zipball/master">Download BASSMIDI Driver Source</a><br>
+<a href="https://github.com/kode54/BASSMIDI-Driver">Mudlord's BASSMIDI Driver Source Web Site</a> | <a href="http://www.mudlord.info/bassmididrv/archive">Mudlord's BASSMIDI Driver Repository (<i>Previous Versions</i>)</a><br>
+<a href="http://jasonwilliams400com.startlogic.com/snor/weeds/SoundFonts/BASSMIDI_Driver/">¥Weeds¥ BASSMIDI Driver Repository (<i>Previous Versions</i>)</a> | <a href="http://www.un4seen.com/download.php?extra/WeedsGM3">Download SoundFont for BASSMIDI Driver</a></b></p>
+<p><b><a href="http://www.un4seen.com/bass.html">BASS Audio Library Web Site</a> | <a href="http://www.un4seen.com/download.php?bass24">Download BASS Audio Library Update (<i>BASS.dll</i>)</a><br>
+<a href="http://www.un4seen.com/bass.html#addons">BASSMIDI Audio Library Web Site</a> | <a href="http://www.un4seen.com/download.php?bassmidi24">Download BASSMIDI Audio Library Update (<i>BASSMIDI.dll</i>)</a><br>
+<a href="http://www.un4seen.com/stuff/bass.dll">Download BASS Audio Library Beta "<i>Stuff</i>" Version</a> | <a href="http://www.un4seen.com/stuff/bassmidi.dll">Download BASSMIDI Audio Library Beta "<i>Stuff</i>" Version</a></b></p>
+<p><b><a href="BASSMIDI_Driver_MIDI_Implementation_Chart.htm">BASSMIDI Driver MIDI Implementation Chart</a> | <a href="BASSMIDI_Driver_Installation_and_Configuration.htm">BASSMIDI Driver Installation and Configuration Instructions</a><br>
+<a href="https://raw.github.com/kode54/BASSMIDI-Driver/master/README.txt">BASSMIDI Driver Readme</a> | <a href="https://raw.github.com/kode54/BASSMIDI-Driver/master/CHANGES.txt">BASSMIDI Driver Version History</a> | <a href="https://raw.github.com/kode54/BASSMIDI-Driver/master/LICENSE.txt">BASSMIDI Driver License</a></b></p>
+<a name="otherdownloads"></a><p></p><hr size="5"><p></p>
+<h3>Other Downloads and Internet Links</h3>
+<p><b><a href="http://www.richnagel.net">Rich ¥Weeds¥ Nagel's Original Music Compositions</a><br>
+<a href="http://www.richnagel.net/#soundfonts">¥Weeds¥ General MIDI SoundFont v3.0</a></b></p>
+<p></p><hr size="5"><p></p>
+<p><font size="-1">Rich ¥Weeds¥ Nagel<br>
+<a href="mailto:richnagel@centurylink.net">richnagel@centurylink.net</a><br>
+<a href="http://www.richnagel.net">http://www.richnagel.net</a></font></p>
+<p><font size="-1"><i>August 2, 2012</i><br>
+(<i>Rev. 3.1</i>)</font></p>
+</body></html>
