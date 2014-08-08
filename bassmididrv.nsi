@@ -4,11 +4,27 @@
 ; The name of the installer
 Name "BASSMIDI System Synth"
 
-; The file to write
-OutFile "bassmididrv.exe"
-; Request application privileges for Windows Vista
-RequestExecutionLevel admin
-SetCompressor /solid lzma 
+!ifdef INNER
+  !echo "Inner invocation"
+  OutFile "$%temp%\tempinstaller.exe"
+  SetCompress off
+!else
+  !echo "Outer invocation"
+
+  !system "$\"${NSISDIR}\makensis$\" /DINNER bassmididrv.nsi" = 0
+
+  !system "$%TEMP%\tempinstaller.exe" = 2
+
+  !system "e:\signit.bat $%TEMP%\bassmididrvuninstall.exe" = 0
+
+  ; The file to write
+  OutFile "bassmididrv.exe"
+
+  ; Request application privileges for Windows Vista
+  RequestExecutionLevel admin
+  SetCompressor /solid lzma 
+!endif
+
 ;--------------------------------
 ; Pages
 !insertmacro MUI_PAGE_WELCOME
@@ -44,6 +60,12 @@ Function un.LockedListShow
 FunctionEnd
 ;--------------------------------
 Function .onInit
+
+!ifdef INNER
+  WriteUninstaller "$%TEMP%\bassmididrvuninstall.exe"
+  Quit
+!endif
+
 ReadRegStr $R0 HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\BASSMIDI System Synth" "UninstallString"
   StrCmp $R0 "" done
   MessageBox MB_OKCANCEL|MB_ICONEXCLAMATION \
@@ -77,6 +99,9 @@ Section "Needed (required)"
    File output\bassmididrv.dll 
    File output\bassmididrvcfg.exe
    File output\sfpacker.exe
+!ifndef INNER
+   File $%TEMP%\bassmididrvuninstall.exe
+!endif
    SetOutPath "$WINDIR\SysNative\bassmididrv"
    File output\64\bass.dll
    File output\64\bassflac.dll
@@ -165,14 +190,12 @@ REGDONE:
   WriteRegDWORD HKLM "Software\BASSMIDI Driver" "volume" "10000"
   CreateDirectory "$SMPROGRAMS\BASSMIDI System Synth"
  ${If} ${RunningX64}
-   WriteUninstaller "$WINDIR\SysWow64\bassmididrv\bassmididrvuninstall.exe"
    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\BASSMIDI System Synth" "UninstallString" '"$WINDIR\SysWow64\bassmididrv\bassmididrvuninstall.exe"'
    WriteRegStr HKLM "Software\BASSMIDI Driver" "path" "$WINDIR\SysWow64\bassmididrv"
    CreateShortCut "$SMPROGRAMS\BASSMIDI System Synth\Uninstall.lnk" "$WINDIR\SysWow64\bassmididrv\bassmididrvuninstall.exe" "" "$WINDIR\SysWow64\bassmididrvuninstall.exe" 0
    CreateShortCut "$SMPROGRAMS\BASSMIDI System Synth\SoundFont Packer.lnk" "$WINDIR\SysWow64\bassmididrv\sfpacker.exe" "" "$WINDIR\SysWow64\sfpacker.exe" 0
    CreateShortCut "$SMPROGRAMS\BASSMIDI System Synth\Configure BASSMIDI Driver.lnk" "$WINDIR\SysWow64\bassmididrv\bassmididrvcfg.exe" "" "$WINDIR\SysWow64\bassmididrv\bassmididrvcfg.exe" 0
    ${Else}
-   WriteUninstaller "$WINDIR\System32\bassmididrv\bassmididrvuninstall.exe"
    WriteRegStr HKLM "Software\BASSMIDI Driver" "path" "$WINDIR\System32\bassmididrv"
    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\BASSMIDI System Synth" "UninstallString" '"$WINDIR\System32\bassmididrv\bassmididrvuninstall.exe"'
    CreateShortCut "$SMPROGRAMS\BASSMIDI System Synth\Uninstall.lnk" "$WINDIR\System32\bassmididrv\bassmididrvuninstall.exe" "" "$WINDIR\System32\bassmididrv\bassmididrvuninstall.exe" 0
@@ -186,6 +209,7 @@ SectionEnd
 
 ; Uninstaller
 
+!ifdef INNER
 Section "Uninstall"
    ; Remove registry keys
     ReadRegStr $0 HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\BASSMIDI System Synth\Backup" \
@@ -249,3 +273,4 @@ ${Else}
 ${Endif}
 ${EndIf}
 SectionEnd
+!endif
