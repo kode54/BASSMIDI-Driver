@@ -432,10 +432,12 @@ typedef struct {
 DWORD_PTR		WINAPI	mciGetDriverData(UINT uDeviceID);
 BOOL			WINAPI	mciSetDriverData(UINT uDeviceID, DWORD_PTR dwData);
 UINT			WINAPI	mciDriverYield(UINT uDeviceID);
+#ifndef _MCIAPI_H_
 BOOL			WINAPI	mciDriverNotify(HWND hwndCallback, UINT uDeviceID,
 						UINT uStatus);
 UINT			WINAPI	mciLoadCommandResource(HINSTANCE hInstance,
 					       LPCWSTR lpResName, UINT uType);
+#endif
 BOOL			WINAPI	mciFreeCommandResource(UINT uTable);
 
 #define DCB_NULL		0x0000
