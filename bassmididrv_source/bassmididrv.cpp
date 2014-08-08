@@ -3,10 +3,6 @@
 */
 
 #define STRICT
-#ifndef _WIN32_WINNT
-#define _WIN32_WINNT _WIN32_WINNT_WINXP
-#endif
-
 
 #if __DMC__
 unsigned long _beginthreadex( void *security, unsigned stack_size,
@@ -474,7 +470,7 @@ int bmsyn_play_some_data(void){
 			switch (uMsg) {
 			case MODM_DATA:
 				dwParam2 = dwParam1 & 0xF0;
-				exlen = ( dwParam2 >= 0xF8 || dwParam2 <= 0xFF ) ? 1 : (( dwParam2 == 0xC0 || dwParam2 == 0xD0 ) ? 2 : 3);
+				exlen = ( dwParam2 >= 0xF8 && dwParam2 <= 0xFF ) ? 1 : (( dwParam2 == 0xC0 || dwParam2 == 0xD0 ) ? 2 : 3);
 				BASS_MIDI_StreamEvents( hStream[uDeviceID], BASS_MIDI_EVENTS_RAW, &dwParam1, exlen );
 				break;
 			case MODM_LONGDATA:
