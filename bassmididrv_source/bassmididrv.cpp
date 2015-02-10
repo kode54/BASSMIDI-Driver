@@ -89,6 +89,21 @@ static HINSTANCE hinst = NULL;             //main DLL handle
 
 static void DoStopClient();
 
+BOOL IsWin8OrNewer()
+{
+	OSVERSIONINFOEX osvi;
+	BOOL bOsVersionInfoEx;
+	ZeroMemory(&osvi, sizeof(OSVERSIONINFOEX));
+	osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
+	bOsVersionInfoEx = GetVersionEx((OSVERSIONINFO*)&osvi);
+	if (bOsVersionInfoEx == FALSE) return FALSE;
+	if (VER_PLATFORM_WIN32_NT == osvi.dwPlatformId &&
+		(osvi.dwMajorVersion > 6 ||
+		(osvi.dwMajorVersion == 6 && osvi.dwMinorVersion > 1)))
+		return TRUE;
+	return FALSE;
+}
+
 class message_window
 {
 	HWND m_hWnd;
@@ -608,9 +623,9 @@ unsigned __stdcall threadfunc(LPVOID lpV){
 		}
 		load_settings();
 		if (sound_driver == NULL) {
-			sound_driver = create_sound_out_xaudio2();
+			sound_driver = IsWin8OrNewer() ? 0 : create_sound_out_xaudio2();
 			sound_out_float = IsVistaOrNewer();
-			const char * err = sound_driver->open(g_msgwnd->get_hwnd(), SAMPLE_RATE_USED, 2, sound_out_float, SAMPLES_PER_FRAME, xaudio2_frames);
+			const char * err = sound_driver ? sound_driver->open(g_msgwnd->get_hwnd(), SAMPLE_RATE_USED, 2, sound_out_float, SAMPLES_PER_FRAME, xaudio2_frames) : "Windows 8";
 			if (err) {
 				delete sound_driver;
 				sound_driver = create_sound_out_ds();
