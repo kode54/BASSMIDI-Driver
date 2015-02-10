@@ -115,6 +115,7 @@ public:
 		listbox.AddColumn(L"SoundFont Name",0);
 		listbox.AddColumn(L"Compression",1);
 		listbox.AddColumn(L"SoundFont Filename",2);
+		listbox.AddColumn(L"Settings",3);
 		
 
 		TCHAR sfpath[MAX_PATH];
@@ -136,7 +137,7 @@ public:
 		if ( ext ) ext++;
 		if ( !_tcsicmp( ext, _T("sf2")) || !_tcsicmp( ext, _T("sf2pack")) )
 		{
-			add_fileentry((TCHAR*)lpszPath);
+			add_fileentry((TCHAR*)lpszPath, _T(""));
 		}
 		else if ( !_tcsicmp( ext, _T("sflist") ))
 		{
@@ -144,13 +145,13 @@ public:
 		}
 	}
 
-	void add_fileentry(TCHAR* szFileName)
+	void add_fileentry(const TCHAR* szFileName, const TCHAR* settings)
 	{
 		BASS_MIDI_FONTINFO info;
 		HSOUNDFONT sf2 = BASS_MIDI_FontInit(szFileName,BASS_UNICODE);
 		const TCHAR* compression;
 		BASS_MIDI_FontGetInfo(sf2,&info);
-		wstring utf8 = utf16_from_utf8(info.name);
+		wstring utf8 = utf16_from_utf8(info.name ? info.name : "");
 		switch (info.samtype)
 		{
 		default:
@@ -195,6 +196,7 @@ public:
 		listbox.AddItem(amount_items,0,utf8.c_str());
 		listbox.AddItem(amount_items,1,compression);
 		listbox.AddItem(amount_items,2,szFileName);
+		listbox.AddItem(amount_items,3,settings);
 	}
 
 	LRESULT OnButtonAdd(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/ )
@@ -213,7 +215,7 @@ public:
 			if ( ext ) ext++;
 			if ( !_tcsicmp( ext, _T("sf2")) || !_tcsicmp( ext, _T("sf2pack")) )
 			{
-				add_fileentry(szFileName);
+				add_fileentry(szFileName, _T(""));
 			}
 			else if ( !_tcsicmp( ext, _T("sflist") ))
 			{
@@ -280,7 +282,7 @@ public:
 
 	}
 
-   void read_sflist(TCHAR * sfpath)
+   void read_sflist(const TCHAR * sfpath)
    {
 	   char* ctypes = "None";
 	   int font_count;
@@ -299,24 +301,32 @@ public:
 			   path[ filename - sfpath ] = 0;
 			   while ( !feof( fl ))
 			   {
-				   
+				   TCHAR * fontptr = fontname;
+				   const TCHAR * settings = _T("");
 				   TCHAR * cr;
 				   if( !_fgetts( fontname, 1024, fl ) ) break;
 				   fontname[1023] = 0;
 				   cr = _tcsrchr( fontname, _T('\n') );
 				   if ( cr ) *cr = 0;
-				   if ( isalpha( fontname[0] ) && fontname[1] == _T(':'))
+				   cr = _tcschr( fontname, _T('|') );
+				   if (cr)
 				   {
-					   cr = fontname;
+					   settings = fontname;
+					   fontptr = cr + 1;
+					   *cr = 0;
+				   }
+				   if ( isalpha( fontptr[0] ) && fontptr[1] == _T(':'))
+				   {
+					   cr = fontptr;
 				   }
 				   else
 				   {
 					   _tcscpy( temp, path );
-					   _tcscat( temp, fontname );
+					   _tcscat( temp, fontptr );
 					   cr = temp;
 				   }
 				   font_count++;
-				   add_fileentry(cr);
+				   add_fileentry(cr, settings);
 			   }
 			   fclose( fl );
 		   }
@@ -327,6 +337,7 @@ public:
    {
 	   int file_count = listbox.GetItemCount();
 	   TCHAR file_name[MAX_PATH];
+	   TCHAR settings[MAX_PATH];
 	   ZeroMemory(file_name,sizeof(file_name));
 	   TCHAR sfpath[MAX_PATH];
 
@@ -343,7 +354,11 @@ public:
 	   for (int i=0;i<file_count;++i)
 	   {
 		   listbox.GetItemText(i,2,file_name,sizeof(file_name));
+		   listbox.GetItemText(i,3,settings,sizeof(settings));
 		   string utf8 = utf8_from_utf16(file_name);
+		   string utf8settings = utf8_from_utf16(settings);
+		   if (utf8settings.length())
+			   out << utf8settings << "|";
 		   out << utf8 << "\n";
 	   }
 	   out.close(); 
@@ -379,6 +394,7 @@ class CView2 : public CDialogImpl<CView2>
 	CButton apply;
 	CButton apply2;
 	CButton sinc_inter;
+	CButton preload_samples;
 
 	/* This is for Windows 6.2 and newer */
 	struct SDriverInfo
@@ -411,6 +427,7 @@ public:
 	   apply = GetDlgItem(IDC_SNAPPLY);
 	   apply2 = GetDlgItem(IDC_APPLY);
 	   sinc_inter = GetDlgItem(IDC_SINC);
+	   preload_samples = GetDlgItem(IDC_PRELOAD);
 	   load_settings();
 	   win8 = IsWin8OrNewer();
 	   win8 ? load_midisynths_manual() : load_midisynths_mapper();
@@ -436,17 +453,20 @@ public:
 		long lResult;
 		DWORD volume;
 		DWORD sinc;
+		DWORD preload;
 		DWORD buflen;
 		DWORD dbuflen;
 		CRegKeyEx reg;
 		lResult = reg.Create(HKEY_LOCAL_MACHINE, L"Software\\BASSMIDI Driver", REG_NONE, REG_OPTION_NON_VOLATILE, KEY_READ | KEY_WOW64_32KEY);
 		if ( reg.QueryDWORDValue( L"volume",volume) ) volume = 10000;
 		if ( reg.QueryDWORDValue( L"sinc",sinc) ) sinc = 1;
+		if ( reg.QueryDWORDValue( L"preload",preload) ) preload = 1;
 		if ( reg.QueryDWORDValue( L"buflen",buflen) ) buflen = 15;
 		if ( reg.QueryDWORDValue( L"dbuflen",dbuflen) ) dbuflen = 50;
 		reg.Close();
 		slider_volume.SetPos(volume);
 		sinc_inter.SetCheck(sinc);
+		preload_samples.SetCheck(preload);
 		buffer_length.SetPos(buflen);
 		dbuffer_length.SetPos(dbuflen);
    }
@@ -457,6 +477,7 @@ public:
 	   DWORD buflen = buffer_length.GetPos();
 	   DWORD dbuflen = dbuffer_length.GetPos();
 	   DWORD sinc = sinc_inter.GetCheck();
+	   DWORD preload = preload_samples.GetCheck();
 	   HKEY hKey, hSubKey;
 	   long lResult;
 	   CRegKeyEx reg;
@@ -465,6 +486,7 @@ public:
 	   lResult = reg.SetDWORDValue(L"buflen",buflen);
 	   lResult = reg.SetDWORDValue(L"dbuflen",dbuflen);
 	   lResult = reg.SetDWORDValue(L"sinc",sinc);
+	   lResult = reg.SetDWORDValue(L"preload",preload);
 
 	   if (lResult == ERROR_SUCCESS)
 	   {

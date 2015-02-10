@@ -23,6 +23,8 @@ void _endthreadex( unsigned retval );
 #include <mmsystem.h>
 #include <tchar.h>
 
+#include <vector>
+
 #define BASSDEF(f) (WINAPI *f)	// define the BASS/BASSMIDI functions as pointers
 #define BASSMIDIDEF(f) (WINAPI *f)	
 #define LOADBASSFUNCTION(f) *((void**)&f)=GetProcAddress(bass,#f)
@@ -149,22 +151,24 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved ){
 	return TRUE;    
 }
 
+std::vector<HSOUNDFONT> _soundFonts[2];
+std::vector<BASS_MIDI_FONTEX> presetList[2];
+
 static void FreeFonts(UINT uDeviceID)
 {
 	unsigned i;
-	if ( hFonts[ uDeviceID ] && font_count[ uDeviceID ] )
+	if ( _soundFonts[uDeviceID].size() )
 	{
-		for ( i = 0; i < font_count[ uDeviceID ]; ++i )
+		for (auto it = _soundFonts[uDeviceID].begin(); it != _soundFonts[uDeviceID].end(); ++it)
 		{
-			BASS_MIDI_FontFree( hFonts[ uDeviceID ][ i ] );
+			BASS_MIDI_FontFree( *it );
 		}
-		free( hFonts[ uDeviceID ] );
-		hFonts[ uDeviceID ] = NULL;
-		font_count[ uDeviceID ] = 0;
+		_soundFonts[uDeviceID].resize(0);
+		presetList[uDeviceID].resize(0);
 	}
 }
 
-void LoadFonts(UINT uDeviceID, const TCHAR * name)
+static bool load_font_item(unsigned uDeviceID, const TCHAR * in_path)
 {
 	const DWORD bass_flags =
 #ifdef UNICODE
@@ -174,6 +178,171 @@ void LoadFonts(UINT uDeviceID, const TCHAR * name)
 #endif
 		;
 
+	const TCHAR * ext = _T("");
+	const TCHAR * dot = _tcsrchr(in_path, _T('.'));
+	if (dot != 0) ext = dot + 1;
+	if (!_tcsicmp(ext, _T("sf2"))
+		|| !_tcsicmp(ext, _T("sf2pack"))
+		)
+	{
+		HSOUNDFONT font = BASS_MIDI_FontInit(in_path, bass_flags);
+		if (!font)
+		{
+			return false;
+		}
+		_soundFonts[uDeviceID].push_back(font);
+		BASS_MIDI_FONTEX fex = { font, -1, -1, -1, 0, 0 };
+		presetList[uDeviceID].push_back(fex);
+		return true;
+	}
+	else if (!_tcsicmp(ext, _T("sflist")))
+	{
+		FILE * fl = _tfopen(in_path, _T("r, ccs=UTF-8"));
+		if (fl)
+		{
+			TCHAR path[32768], temp[32768];
+			TCHAR name[32768];
+			TCHAR *nameptr;
+			const TCHAR * slash = _tcsrchr(in_path, _T('\\'));
+			if (slash != 0) _tcsncpy(path, in_path, slash - in_path + 1);
+			while (!feof(fl))
+			{
+				std::vector<BASS_MIDI_FONTEX> presets;
+
+				if (!_fgetts(name, 32767, fl)) break;
+				name[32767] = 0;
+				TCHAR * cr = _tcschr(name, _T('\n'));
+				if (cr) *cr = 0;
+				cr = _tcschr(name, _T('\r'));
+				if (cr) *cr = 0;
+				cr = _tcschr(name, '|');
+				if (cr)
+				{
+					bool valid = true;
+					TCHAR *endchr;
+					nameptr = cr + 1;
+					*cr = 0;
+					cr = name;
+					while (*cr && valid)
+					{
+						switch (*cr++)
+						{
+						case 'p':
+						{
+							// patch override - "p[db#,]dp#=[sb#,]sp#" ex. "p0,5=0,1"
+							// may be used once per preset group
+							long dbank = 0;
+							long dpreset = _tcstol(cr, &endchr, 10);
+							if (endchr == cr)
+							{
+								valid = false;
+								break;
+							}
+							if (*endchr == ',')
+							{
+								dbank = dpreset;
+								cr = endchr + 1;
+								dpreset = _tcstol(cr, &endchr, 10);
+								if (endchr == cr)
+								{
+									valid = false;
+									break;
+								}
+							}
+							if (*endchr != '=')
+							{
+								valid = false;
+								break;
+							}
+							cr = endchr + 1;
+							long sbank = -1;
+							long spreset = _tcstol(cr, &endchr, 10);
+							if (endchr == cr)
+							{
+								valid = false;
+								break;
+							}
+							if (*endchr == ',')
+							{
+								sbank = spreset;
+								cr = endchr + 1;
+								spreset = _tcstol(cr, &endchr, 10);
+								if (endchr == cr)
+								{
+									valid = false;
+									break;
+								}
+							}
+							if (*endchr && *endchr != ';' && *endchr != '&')
+							{
+								valid = false;
+								break;
+							}
+							cr = endchr;
+							BASS_MIDI_FONTEX fex = { 0, (int)spreset, (int)sbank, (int)dpreset, (int)dbank, 0 };
+							presets.push_back(fex);
+						}
+						break;
+
+						case '&':
+						{
+						}
+						break;
+
+						case ';':
+							// separates preset items
+							break;
+
+						default:
+							// invalid command character
+							valid = false;
+							break;
+						}
+					}
+					if (!valid)
+					{
+						presets.clear();
+						BASS_MIDI_FONTEX fex = { 0, -1, -1, -1, 0, 0 };
+						presets.push_back(fex);
+					}
+				}
+				else
+				{
+					BASS_MIDI_FONTEX fex = { 0, -1, -1, -1, 0, 0 };
+					presets.push_back(fex);
+					nameptr = name;
+				}
+				if ((isalpha(nameptr[0]) && nameptr[1] == _T(':')) || nameptr[0] == '\\')
+				{
+					_tcscpy(temp, nameptr);
+				}
+				else
+				{
+					_tcscpy(temp, path);
+					_tcscat(temp, nameptr);
+				}
+				HSOUNDFONT font = BASS_MIDI_FontInit(temp, bass_flags);
+				if (!font)
+				{
+					fclose(fl);
+					return false;
+				}
+				for (auto it = presets.begin(); it != presets.end(); ++it)
+				{
+					it->font = font;
+					presetList[uDeviceID].push_back(*it);
+				}
+				_soundFonts[uDeviceID].push_back(font);
+			}
+			fclose(fl);
+			return true;
+		}
+	}
+	return false;
+}
+
+void LoadFonts(UINT uDeviceID, const TCHAR * name)
+{
 	FreeFonts(uDeviceID);
 
 	if (name && *name)
@@ -182,46 +351,27 @@ void LoadFonts(UINT uDeviceID, const TCHAR * name)
 		if ( ext ) ext++;
 		if ( !_tcsicmp( ext, _T("sf2") ) || !_tcsicmp( ext, _T("sf2pack") ) )
 		{
-			font_count[ uDeviceID ] = 1;
-			hFonts[ uDeviceID ] = (HSOUNDFONT*)malloc( sizeof(HSOUNDFONT) );
-			*hFonts[ uDeviceID ] = BASS_MIDI_FontInit( name, bass_flags );
+			if (!load_font_item(uDeviceID, name))
+			{
+				FreeFonts(uDeviceID);
+				return;
+			}
 		}
 		else if ( !_tcsicmp( ext, _T("sflist") ) )
 		{
-			FILE * fl = _tfopen( name, _T("r, ccs=UTF-8") );
-			font_count[ uDeviceID ] = 0;
-			if ( fl )
+			if (!load_font_item(uDeviceID, name))
 			{
-				TCHAR path[MAX_PATH], fontname[MAX_PATH], temp[MAX_PATH];
-				const TCHAR * filename = _tcsrchr( name, _T('\\') ) + 1;
-				if ( filename == (void*)1 ) filename = _tcsrchr( name, _T(':') ) + 1;
-				if ( filename == (void*)1 ) filename = name;
-				_tcsncpy( path, name, filename - name );
-				path[ filename - name ] = 0;
-				while ( !feof( fl ) )
-				{
-					TCHAR * cr;
-					if( !_fgetts( fontname, MAX_PATH, fl ) ) break;
-					fontname[MAX_PATH-1] = 0;
-					cr = _tcsrchr( fontname, _T('\n') );
-					if ( cr ) *cr = 0;
-					if ( isalpha( fontname[0] ) && fontname[1] == _T(':') )
-					{
-						cr = fontname;
-					}
-					else
-					{
-						_tcscpy( temp, path );
-						_tcscat( temp, fontname );
-						cr = temp;
-					}
-					font_count[ uDeviceID ]++;
-					hFonts[ uDeviceID ] = (HSOUNDFONT*)realloc( hFonts[ uDeviceID ], sizeof(HSOUNDFONT) * font_count[ uDeviceID ] );
-					hFonts[ uDeviceID ][ font_count[ uDeviceID ] - 1 ] = BASS_MIDI_FontInit( cr, bass_flags );
-				}
-				fclose( fl );
+				FreeFonts(uDeviceID);
+				return;
 			}
 		}
+
+		std::vector< BASS_MIDI_FONTEX > fonts;
+		for (unsigned long i = 0, j = presetList[uDeviceID].size(); i < j; ++i)
+		{
+			fonts.push_back(presetList[uDeviceID][j - i - 1]);
+		}
+		BASS_MIDI_StreamSetFonts(hStream[uDeviceID], &fonts[0], (unsigned int)fonts.size() | BASS_MIDI_FONT_EX);
 	}
 }
 
@@ -525,7 +675,7 @@ void load_settings()
 
 int check_sinc()
 {
-	int sinc = 0;
+	DWORD sinc = 0;
 	HKEY hKey;
 	long lResult;
 	DWORD dwType=REG_DWORD;
@@ -534,6 +684,19 @@ int check_sinc()
 	RegQueryValueEx(hKey, L"sinc", NULL, &dwType,(LPBYTE)&sinc, &dwSize);
 	RegCloseKey( hKey);
 	return sinc;
+}
+
+int check_preload()
+{
+	DWORD preload = 1;
+	HKEY hKey;
+	long lResult;
+	DWORD dwType = REG_DWORD;
+	DWORD dwSize = sizeof(DWORD);
+	lResult = RegOpenKeyEx(HKEY_LOCAL_MACHINE, L"Software\\BASSMIDI Driver", 0, KEY_READ | KEY_WOW64_32KEY, &hKey);
+	RegQueryValueEx(hKey, L"preload", NULL, &dwType, (LPBYTE)&preload, &dwSize);
+	RegCloseKey(hKey);
+	return preload;
 }
 
 BOOL load_bassfuncs()
@@ -577,6 +740,7 @@ BOOL load_bassfuncs()
 		LOADBASSMIDIFUNCTION(BASS_MIDI_StreamSetFonts);
 		LOADBASSMIDIFUNCTION(BASS_MIDI_StreamEvents);
 		LOADBASSMIDIFUNCTION(BASS_MIDI_StreamEvent);
+		LOADBASSMIDIFUNCTION(BASS_MIDI_StreamLoadSamples);
 
 		installpathlength=lstrlen(installpath)+1;
 		lstrcat(pluginpath,installpath);
@@ -641,6 +805,7 @@ unsigned __stdcall threadfunc(LPVOID lpV){
 		BASS_SetConfig(BASS_CONFIG_UPDATEPERIOD, 0);
 		BASS_SetConfig(BASS_CONFIG_UPDATETHREADS, 0);
 		BASS_SetConfig(BASS_CONFIG_MIDI_VOICES, 256);
+		BASS_SetConfig(BASS_CONFIG_MIDI_COMPACT, !check_preload());
 		if ( BASS_Init( 0, SAMPLE_RATE_USED, 0, NULL, NULL ) ) {
 			hStream[0] = BASS_MIDI_StreamCreate( 16, BASS_STREAM_DECODE | ( sound_out_float ? BASS_SAMPLE_FLOAT : 0 ) | (check_sinc()?BASS_MIDI_SINCINTER: 0), SAMPLE_RATE_USED );
 			if (!hStream[0]) continue;
@@ -661,25 +826,10 @@ unsigned __stdcall threadfunc(LPVOID lpV){
 			}
 			LoadFonts(0, config);
 			LoadFonts(1, configb);
-			if (font_count[ 0 ]) {
-				mf = (BASS_MIDI_FONT*)malloc( sizeof(BASS_MIDI_FONT) * font_count[ 0 ] );
-				for ( i = 0; i < font_count[ 0 ]; ++i ) {
-					mf[i].font = hFonts[ 0 ][ font_count[ 0 ] - i - 1 ];
-					mf[i].preset = -1;
-					mf[i].bank = 0;
-				}
-				BASS_MIDI_StreamSetFonts( hStream[ 0 ], mf, font_count[ 0 ] );
-				free(mf);
-			}
-			if (font_count[ 1 ]) {
-				mf = (BASS_MIDI_FONT*)malloc( sizeof(BASS_MIDI_FONT) * font_count[ 1 ] );
-				for ( i = 0; i < font_count[ 1 ]; ++i ) {
-					mf[i].font = hFonts[ 1 ][ font_count[ 1 ] - i - 1 ];
-					mf[i].preset = -1;
-					mf[i].bank = 0;
-				}
-				BASS_MIDI_StreamSetFonts( hStream[ 1 ], mf, font_count[ 1 ] );
-				free(mf);
+			if (check_preload())
+			{
+				BASS_MIDI_StreamLoadSamples( hStream[0] );
+				BASS_MIDI_StreamLoadSamples( hStream[1] );
 			}
 			SetEvent(load_sfevent);
 			opend = 1;
@@ -694,11 +844,15 @@ unsigned __stdcall threadfunc(LPVOID lpV){
 			reset_synth[ 0 ] = 0;
 			load_settings();
 			BASS_MIDI_StreamEvent( hStream[ 0 ], 0, MIDI_EVENT_SYSTEM, MIDI_SYSTEM_DEFAULT );
+			if (check_preload())
+				BASS_MIDI_StreamLoadSamples( hStream[0] );
 		}
 		if (reset_synth[ 1 ] != 0){
 			reset_synth[ 1 ] = 0;
 			load_settings();
 			BASS_MIDI_StreamEvent( hStream[ 1 ], 0, MIDI_EVENT_SYSTEM, MIDI_SYSTEM_DEFAULT );
+			if (check_preload())
+				BASS_MIDI_StreamLoadSamples( hStream[1] );
 		}
 		bmsyn_play_some_data();
 		if (sound_out_float) {

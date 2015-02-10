@@ -26,6 +26,7 @@
 /drivercfg/Debug
 /drivercfg/*.dll
 /drivercfg/*.exe
+/drivercfg/x64
 /sfpacker/*.opensdf
 /sfpacker/*.sdf
 /sfpacker/*.vcxproj.user
