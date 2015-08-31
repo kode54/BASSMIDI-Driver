@@ -43,20 +43,22 @@ UninstPage Custom un.LockedListShow
 !define DeleteOnReboot `!insertmacro DeleteOnReboot`
 
 Function LockedListShow
- ${If} ${AtLeastWinVista}
+  ${If} ${RunningX64}
+    File /oname=$PLUGINSDIR\LockedList64.dll `${NSISDIR}\Plugins\LockedList64.dll`
+  ${EndIf}
   !insertmacro MUI_HEADER_TEXT `File in use check` `Drive use check`
   LockedList::AddModule \bassmididrv.dll
   LockedList::Dialog  /autonext   
   Pop $R0
-  ${EndIf}
 FunctionEnd
 Function un.LockedListShow
- ${If} ${AtLeastWinVista}
+  ${If} ${RunningX64}
+    File /oname=$PLUGINSDIR\LockedList64.dll `${NSISDIR}\Plugins\LockedList64.dll`
+  ${EndIf}
   !insertmacro MUI_HEADER_TEXT `File in use check` `Drive use check`
   LockedList::AddModule \bassmididrv.dll
   LockedList::Dialog  /autonext   
   Pop $R0
- ${EndIf}
 FunctionEnd
 ;--------------------------------
 Function .onInit
