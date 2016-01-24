@@ -93,6 +93,7 @@ Section "Needed (required)"
    ${If} ${RunningX64}
    SetOutPath "$WINDIR\SysWow64\bassmididrv"
    File output\bass.dll 
+   File output\basswasapi.dll
    File output\bassflac.dll
    File output\basswv.dll
    File output\bassopus.dll   
@@ -106,6 +107,7 @@ Section "Needed (required)"
 !endif
    SetOutPath "$WINDIR\SysNative\bassmididrv"
    File output\64\bass.dll
+   File output\64\basswasapi.dll
    File output\64\bassflac.dll
    File output\64\basswv.dll
    File output\64\bassopus.dll
@@ -155,7 +157,8 @@ NEXT2:
   StrCmp $1 "9" 0 LOOP2
    ${Else}
    SetOutPath "$WINDIR\System32\bassmididrv"
-   File output\bass.dll 
+   File output\bass.dll
+   File output\basswasapi.dll
    File output\bassflac.dll
    File output\basswv.dll
    File output\bassopus.dll   
@@ -238,6 +241,7 @@ ${EndIf}
 ${Else}
   MessageBox MB_OK "Note: The uninstaller will reboot your system to remove drivers."
   ${DeleteOnReboot} $WINDIR\SysWow64\bassmididrv\bass.dll
+  ${DeleteOnReboot} $WINDIR\SysWow64\bassmididrv\basswasapi.dll
   ${DeleteOnReboot} $WINDIR\SysWow64\bassmididrv\bassmidi.dll
   ${DeleteOnReboot} $WINDIR\SysWow64\bassmididrv\bassmididrv.dll
    ${DeleteOnReboot} $WINDIR\SysWow64\bassmididrv\bass_mpc.dll 
@@ -248,6 +252,7 @@ ${Else}
    ${DeleteOnReboot} $WINDIR\SysWow64\bassmididrv\bassopus.dll
    ${DeleteOnReboot} $WINDIR\SysWow64\bassmididrv\sfpacker.exe
   ${DeleteOnReboot} $WINDIR\SysNative\bassmididrv\bass.dll
+  ${DeleteOnReboot} $WINDIR\SysNative\bassmididrv\basswasapi.dll
   ${DeleteOnReboot} $WINDIR\SysNative\bassmididrv\bassmidi.dll
   ${DeleteOnReboot} $WINDIR\SysNative\bassmididrv\bassmididrv.dll
    ${DeleteOnReboot} $WINDIR\SysNative\bassmididrv\bass_mpc.dll 
@@ -262,6 +267,7 @@ ${If} ${AtLeastWinVista}
 ${Else}
   MessageBox MB_OK "Note: The uninstaller will reboot your system to remove drivers."
   ${DeleteOnReboot} $WINDIR\System32\bassmididrv\bass.dll
+  ${DeleteOnReboot} $WINDIR\System32\bassmididrv\basswasapi.dll
   ${DeleteOnReboot} $WINDIR\System32\bassmididrv\bassmidi.dll
   ${DeleteOnReboot} $WINDIR\System32\bassmididrv\bassmididrv.dll
   ${DeleteOnReboot} $WINDIR\System32\bassmididrv\bass_mpc.dll 
