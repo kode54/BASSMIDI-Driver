@@ -13,7 +13,7 @@ SET INCLUDEBASS = ..\external_packages\lib64\bass.lib
 ) else (
 SET INCLUDEBASS = ..\external_packages\lib\bass.lib
 )
-cl /O1 /MT /EHsc /D_WIN32_WINNT=0x0501 /D_USING_V110_SDK71_ /DUNICODE /D_UNICODE /LD /I "..\external_packages" /MP%NUMBER_OF_PROCESSORS% bassmididrv.cpp dsound.cpp sound_out_dsound.cpp sound_out_xaudio2.cpp kernel32.lib user32.lib Shlwapi.lib advapi32.lib winmm.lib Ole32.lib uuid.lib %INCLUDEBASS% bassmididrv.def
+cl /O1 /MT /EHsc /D_WIN32_WINNT=0x0501 /D_USING_V110_SDK71_ /DUNICODE /D_UNICODE /LD /I "..\external_packages" /MP%NUMBER_OF_PROCESSORS% bassmididrv.cpp kernel32.lib user32.lib Shlwapi.lib advapi32.lib Ole32.lib winmm.lib uuid.lib %INCLUDEBASS% bassmididrv.def
 if ERRORLEVEL 1 goto END
 REM Move files to the output dir
 mkdir ..\output\64

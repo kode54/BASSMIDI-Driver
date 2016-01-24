@@ -19,30 +19,32 @@ void _endthreadex( unsigned retval );
 #include <windows.h>
 #include <process.h>
 #include <Shlwapi.h>
-#include <mmddk.h>
-#include <mmsystem.h>
 #include <tchar.h>
+#include <mmddk.h>
 
 #include <vector>
 
 #define BASSDEF(f) (WINAPI *f)	// define the BASS/BASSMIDI functions as pointers
 #define BASSMIDIDEF(f) (WINAPI *f)	
+#define BASSWASAPIDEF(f) (WINAPI *f)
 #define LOADBASSFUNCTION(f) *((void**)&f)=GetProcAddress(bass,#f)
 #define LOADBASSMIDIFUNCTION(f) *((void**)&f)=GetProcAddress(bassmidi,#f)
+#define LOADBASSWASAPIFUNCTION(f) *((void**)&f)=GetProcAddress(basswasapi,#f)
 #include <bass.h>
 #include <bassmidi.h>
+#include <basswasapi.h>
 
-#include "sound_out.h"
 
 
 #define MAX_DRIVERS 2
 #define MAX_CLIENTS 1 // Per driver
 
 #define SAMPLES_PER_FRAME 88 * 2
-#define FRAMES_XAUDIO 15
-#define FRAMES_DSOUND 50
-#define SAMPLE_RATE_USED 44100
+#define FRAMES_WASAPI 30
+#define FRAMES_DSOUND 60
+#define SAMPLE_RATE_DEFAULT 44100
 
+static DWORD SAMPLE_RATE_USED = SAMPLE_RATE_DEFAULT;
 
 struct Driver_Client {
 	int allocated;
@@ -65,27 +67,29 @@ static volatile int OpenCount = 0;
 static volatile int modm_closed = 1;
 
 static CRITICAL_SECTION mim_section;
+static CRITICAL_SECTION bass_section;
 static volatile int stop_thread = 0;
 static volatile int reset_synth[2] = {0, 0};
 static HANDLE hCalcThread = NULL;
 static DWORD processPriority;
 static HANDLE load_sfevent = NULL; 
 
+static DWORD wasapi_frames = 30; // default
+static DWORD dsound_frames = 60; // default
 
 static unsigned int font_count[2] = { 0, 0 };
 static HSOUNDFONT * hFonts[2] = { NULL, NULL };
 static HSTREAM hStream[2] = {0, 0};
+static HSTREAM hStOutput = 0;
 
-static BOOL com_initialized = FALSE;
 static BOOL sound_out_float = FALSE;
+static int wasapi_bits = 16;
 static float sound_out_volume_float = 1.0;
 static int sound_out_volume_int = 0x1000;
-static int xaudio2_frames = 15; //default
-static int dsound_frames = 50; //default
-static sound_out * sound_driver = NULL;
 
 static HINSTANCE bass = 0;			// bass handle
 static HINSTANCE bassmidi = 0;			// bassmidi handle
+static HINSTANCE basswasapi = 0;        // basswasapi handle
 //TODO: Can be done with: HMODULE GetDriverModuleHandle(HDRVR hdrvr);  (once DRV_OPEN has been called)
 static HINSTANCE hinst = NULL;             //main DLL handle
 
@@ -657,6 +661,113 @@ int bmsyn_play_some_data(void){
 	return played;
 }
 
+DWORD CALLBACK StreamProc(HSTREAM handle, void *buffer, DWORD length, void *user)
+{
+	DWORD bytes_done = 0;
+	if (sound_out_float) {
+		float sound_buffer[2][SAMPLES_PER_FRAME];
+		length /= sizeof(float);
+		while (length) {
+			int samples_todo = length > SAMPLES_PER_FRAME ? SAMPLES_PER_FRAME : length;
+			EnterCriticalSection(&bass_section);
+			bmsyn_play_some_data();
+			int decoded = BASS_ChannelGetData( hStream[ 0 ], sound_buffer[0], BASS_DATA_FLOAT + samples_todo * sizeof(float) );
+			int decoded2 = BASS_ChannelGetData( hStream[ 1 ], sound_buffer[1], BASS_DATA_FLOAT + samples_todo * sizeof(float) );
+			LeaveCriticalSection(&bass_section);
+			if ( decoded < 0 || decoded2 < 0 ) return bytes_done;
+			else {
+				assert( decoded == decoded2 );
+				for ( unsigned i = 0, j = decoded / sizeof(float); i < j; i++ ) {
+					float sample = sound_buffer[ 0 ][ i ] + sound_buffer[ 1 ][ i ];
+					sample *= sound_out_volume_float;
+					sound_buffer[ 0 ][ i ] = sample;
+				}
+				memcpy(buffer, sound_buffer[ 0 ], decoded);
+				buffer = (void *)(((unsigned char *)buffer) + decoded);
+				bytes_done += decoded;
+			}
+			length -= decoded / sizeof(float);
+		}
+	} else {
+		short sound_buffer[2][SAMPLES_PER_FRAME];
+		length /= sizeof(short);
+		while (length) {
+			int samples_todo = length > SAMPLES_PER_FRAME ? SAMPLES_PER_FRAME : length;
+			EnterCriticalSection(&bass_section);
+			bmsyn_play_some_data();
+			int decoded = BASS_ChannelGetData( hStream[ 0 ], sound_buffer[0], samples_todo * sizeof(short) );
+			int decoded2 = BASS_ChannelGetData( hStream[ 1 ], sound_buffer[1], samples_todo * sizeof(short) );
+			LeaveCriticalSection(&bass_section);
+			if ( decoded < 0 || decoded2 < 0 ) return bytes_done;
+			else {
+				assert( decoded == decoded2 );
+				for ( unsigned i = 0, j = decoded / sizeof(short); i < j; i++ ) {
+					int sample = sound_buffer[ 0 ][ i ] + sound_buffer[ 1 ][ i ];
+					sample = ( sample * sound_out_volume_int ) >> 12;
+					if ( ( sample + 0x8000 ) & 0xFFFF0000 ) sample = 0x7FFF ^ ( sample >> 31 );
+					sound_buffer[ 0 ][ i ] = sample;
+				}
+				memcpy(buffer, sound_buffer[ 0 ], decoded);
+				buffer = (void *)(((unsigned char *)buffer) + decoded);
+				bytes_done += decoded;
+			}
+			length -= decoded / sizeof(short);
+		}
+	}
+	return bytes_done;
+}
+
+DWORD CALLBACK WasapiProc(void *buffer, DWORD length, void *user)
+{
+	if (sound_out_float || wasapi_bits == 16)
+		return StreamProc(NULL, buffer, length, 0);
+	else
+	{
+		int bytes_per_sample = wasapi_bits / 8;
+		int bytes_done = 0;
+		while (length)
+		{
+			unsigned short sample_buffer[SAMPLES_PER_FRAME];
+			int length_todo = (length / bytes_per_sample);
+			if (length_todo > SAMPLES_PER_FRAME) length_todo = SAMPLES_PER_FRAME;
+			int bytes_done_this = StreamProc(NULL, sample_buffer, length_todo * 4, 0);
+			if (bytes_done_this <= 0) return bytes_done;
+			if (wasapi_bits == 32)
+			{
+				unsigned int * out = (unsigned int *) buffer;
+				for (int i = 0; i < bytes_done_this; i += 2)
+				{
+					*out++ = sample_buffer[i / 2] << 16;
+				}
+				buffer = out;
+			}
+			else if (wasapi_bits == 24)
+			{
+				unsigned char * out = (unsigned char *) buffer;
+				for (int i = 0; i < bytes_done_this; i += 2)
+				{
+					int sample = sample_buffer[i / 2];
+					*out++ = 0;
+					*out++ = sample & 0xFF;
+					*out++ = (sample >> 8) & 0xFF;
+				}
+				buffer = out;
+			}
+			else if (wasapi_bits == 8)
+			{
+				unsigned char * out = (unsigned char *) buffer;
+				for (int i = 0; i < bytes_done_this; i += 2)
+				{
+					*out++ = (sample_buffer[i / 2] >> 8) & 0xFF;
+				}
+				buffer = out;
+			}
+			bytes_done += (bytes_done_this / 2) * bytes_per_sample;
+			length -= (bytes_done_this / 2) * bytes_per_sample;
+		}
+	}
+}
+
 void load_settings()
 {
 	int config_volume;
@@ -666,7 +777,6 @@ void load_settings()
 	DWORD dwSize=sizeof(DWORD);
 	lResult = RegOpenKeyEx(HKEY_LOCAL_MACHINE, L"Software\\BASSMIDI Driver", 0, KEY_READ | KEY_WOW64_32KEY, &hKey);
 	RegQueryValueEx(hKey, L"volume", NULL, &dwType,(LPBYTE)&config_volume, &dwSize);
-	RegQueryValueEx(hKey, L"buflen", NULL, &dwType,(LPBYTE)&xaudio2_frames, &dwSize);
 	RegQueryValueEx(hKey, L"dbuflen", NULL, &dwType,(LPBYTE)&dsound_frames, &dwSize);
 	RegCloseKey( hKey);
 	sound_out_volume_float = (float)config_volume / 10000.0f;
@@ -704,6 +814,7 @@ BOOL load_bassfuncs()
 		TCHAR installpath[MAX_PATH] = {0};
 		TCHAR basspath[MAX_PATH] = {0};
 		TCHAR bassmidipath[MAX_PATH] = {0};
+		TCHAR basswasapipath[MAX_PATH] = {0};
 		TCHAR pluginpath[MAX_PATH] = {0};
 		WIN32_FIND_DATA fd;
 		HANDLE fh;
@@ -724,6 +835,9 @@ BOOL load_bassfuncs()
 			OutputDebugString(L"Failed to load BASSMIDI DLL!");
 			return FALSE;
 		}
+		lstrcat(basswasapipath,installpath);
+		lstrcat(basswasapipath,L"\\basswasapi.dll");
+		basswasapi=LoadLibrary(basswasapipath);
 		/* "load" all the BASS functions that are to be used */
 		OutputDebugString(L"Loading BASS functions....");
 		LOADBASSFUNCTION(BASS_ErrorGetCode);
@@ -731,9 +845,12 @@ BOOL load_bassfuncs()
 		LOADBASSFUNCTION(BASS_Init);
 		LOADBASSFUNCTION(BASS_Free);
 		LOADBASSFUNCTION(BASS_GetInfo);
+		LOADBASSFUNCTION(BASS_StreamCreate);
 		LOADBASSFUNCTION(BASS_StreamFree);
 		LOADBASSFUNCTION(BASS_PluginLoad);
 		LOADBASSFUNCTION(BASS_ChannelGetData);
+		LOADBASSFUNCTION(BASS_ChannelPlay);
+		LOADBASSFUNCTION(BASS_ChannelStop);
 		LOADBASSMIDIFUNCTION(BASS_MIDI_StreamCreate);
 		LOADBASSMIDIFUNCTION(BASS_MIDI_FontInit);
 		LOADBASSMIDIFUNCTION(BASS_MIDI_FontFree);
@@ -741,6 +858,14 @@ BOOL load_bassfuncs()
 		LOADBASSMIDIFUNCTION(BASS_MIDI_StreamEvents);
 		LOADBASSMIDIFUNCTION(BASS_MIDI_StreamEvent);
 		LOADBASSMIDIFUNCTION(BASS_MIDI_StreamLoadSamples);
+
+		if (basswasapi) {
+			LOADBASSWASAPIFUNCTION(BASS_WASAPI_Init);
+			LOADBASSWASAPIFUNCTION(BASS_WASAPI_Free);
+			LOADBASSWASAPIFUNCTION(BASS_WASAPI_Start);
+			LOADBASSWASAPIFUNCTION(BASS_WASAPI_Stop);
+			LOADBASSWASAPIFUNCTION(BASS_WASAPI_GetInfo);
+		}
 
 		installpathlength=lstrlen(installpath)+1;
 		lstrcat(pluginpath,installpath);
@@ -778,41 +903,65 @@ unsigned __stdcall threadfunc(LPVOID lpV){
 	TCHAR config[MAX_PATH];
 	TCHAR configb[MAX_PATH];
 	BASS_MIDI_FONT * mf;
+	BASS_WASAPI_INFO winfo;
+	int len;
 
 	while(opend == 0 && stop_thread == 0) {
 		Sleep(100);
-		if (!com_initialized) {
-			if (FAILED(CoInitialize(NULL))) continue;
-			com_initialized = TRUE;
-		}
 		load_settings();
-		if (sound_driver == NULL) {
-			sound_driver = IsWin8OrNewer() ? 0 : create_sound_out_xaudio2();
-			sound_out_float = IsVistaOrNewer();
-			const char * err = sound_driver ? sound_driver->open(g_msgwnd->get_hwnd(), SAMPLE_RATE_USED, 2, sound_out_float, SAMPLES_PER_FRAME, xaudio2_frames) : "Windows 8";
-			if (err) {
-				delete sound_driver;
-				sound_driver = create_sound_out_ds();
-				err = sound_driver->open(g_msgwnd->get_hwnd(), SAMPLE_RATE_USED, 2,  sound_out_float, SAMPLES_PER_FRAME, dsound_frames);
+		load_bassfuncs();
+		BASS_SetConfig(BASS_CONFIG_MIDI_VOICES, 1000);
+		BASS_SetConfig(BASS_CONFIG_MIDI_COMPACT, !check_preload());
+		BASS_SetConfig(BASS_CONFIG_UPDATEPERIOD, 5);
+		if ( BASS_Init( basswasapi ? 0 : -1, SAMPLE_RATE_USED, BASS_DEVICE_LATENCY, NULL, NULL ) ) {
+			if (basswasapi) {
+				if (!BASS_WASAPI_Init(-1, 0, 2, BASS_WASAPI_EVENT, (float)wasapi_frames * 0.001, 0.005, WasapiProc, 0 ))
+					continue;
+				if (!BASS_WASAPI_GetInfo(&winfo))
+				{
+					BASS_WASAPI_Free();
+					continue;
+				}
+				SAMPLE_RATE_USED = winfo.freq;
+				switch (winfo.format) {
+				case BASS_WASAPI_FORMAT_8BIT:
+					wasapi_bits = 8;
+					break;
+
+				case BASS_WASAPI_FORMAT_16BIT:
+					wasapi_bits = 16;
+					break;
+
+				case BASS_WASAPI_FORMAT_24BIT:
+					wasapi_bits = 24;
+					break;
+
+				case BASS_WASAPI_FORMAT_32BIT:
+					wasapi_bits = 32;
+					break;
+
+				case BASS_WASAPI_FORMAT_FLOAT:
+					sound_out_float = TRUE;
+					break;
+				}
 			}
-			if (err) {
-				delete sound_driver;
-				sound_driver = NULL;
+			else {
+				hStOutput = BASS_StreamCreate( SAMPLE_RATE_USED, 2, ( sound_out_float ? BASS_SAMPLE_FLOAT : 0 ), StreamProc, 0 );
+				if (!hStOutput) continue;
+			}
+
+			hStream[0] = BASS_MIDI_StreamCreate( 16, BASS_STREAM_DECODE | ( sound_out_float ? BASS_SAMPLE_FLOAT : 0 ) | (check_sinc()?BASS_MIDI_SINCINTER: 0), SAMPLE_RATE_USED );
+			if (!hStream[0]) {
+				BASS_StreamFree(hStOutput);
+				hStOutput = 0;
 				continue;
 			}
-		}
-		load_bassfuncs();
-		BASS_SetConfig(BASS_CONFIG_UPDATEPERIOD, 0);
-		BASS_SetConfig(BASS_CONFIG_UPDATETHREADS, 0);
-		BASS_SetConfig(BASS_CONFIG_MIDI_VOICES, 256);
-		BASS_SetConfig(BASS_CONFIG_MIDI_COMPACT, !check_preload());
-		if ( BASS_Init( 0, SAMPLE_RATE_USED, 0, NULL, NULL ) ) {
-			hStream[0] = BASS_MIDI_StreamCreate( 16, BASS_STREAM_DECODE | ( sound_out_float ? BASS_SAMPLE_FLOAT : 0 ) | (check_sinc()?BASS_MIDI_SINCINTER: 0), SAMPLE_RATE_USED );
-			if (!hStream[0]) continue;
 			hStream[1] = BASS_MIDI_StreamCreate( 16, BASS_STREAM_DECODE | ( sound_out_float ? BASS_SAMPLE_FLOAT : 0 ) | (check_sinc()?BASS_MIDI_SINCINTER: 0), SAMPLE_RATE_USED );
 			if (!hStream[1]) {
 				BASS_StreamFree(hStream[0]);
 				hStream[0] = 0;
+				BASS_StreamFree(hStOutput);
+				hStOutput = 0;
 				continue;
 			}
 			BASS_MIDI_StreamEvent( hStream[0], 0, MIDI_EVENT_SYSTEM, MIDI_SYSTEM_DEFAULT );
@@ -838,54 +987,36 @@ unsigned __stdcall threadfunc(LPVOID lpV){
 		}
 	}
 
+	if (hStOutput)
+		BASS_ChannelPlay(hStOutput, FALSE);
+	else if (basswasapi)
+		BASS_WASAPI_Start();
+
 	while(stop_thread == 0){
-		Sleep(1);
+		Sleep(10);
 		if (reset_synth[ 0 ] != 0){
 			reset_synth[ 0 ] = 0;
 			load_settings();
+			EnterCriticalSection(&bass_section);
 			BASS_MIDI_StreamEvent( hStream[ 0 ], 0, MIDI_EVENT_SYSTEM, MIDI_SYSTEM_DEFAULT );
 			if (check_preload())
 				BASS_MIDI_StreamLoadSamples( hStream[0] );
+			LeaveCriticalSection(&bass_section);
 		}
 		if (reset_synth[ 1 ] != 0){
 			reset_synth[ 1 ] = 0;
 			load_settings();
+			EnterCriticalSection(&bass_section);
 			BASS_MIDI_StreamEvent( hStream[ 1 ], 0, MIDI_EVENT_SYSTEM, MIDI_SYSTEM_DEFAULT );
 			if (check_preload())
 				BASS_MIDI_StreamLoadSamples( hStream[1] );
-		}
-		bmsyn_play_some_data();
-		if (sound_out_float) {
-			float sound_buffer[2][SAMPLES_PER_FRAME];
-			int decoded = BASS_ChannelGetData( hStream[ 0 ], sound_buffer[0], BASS_DATA_FLOAT + SAMPLES_PER_FRAME * sizeof(float) );
-			int decoded2 = BASS_ChannelGetData( hStream[ 1 ], sound_buffer[1], BASS_DATA_FLOAT + SAMPLES_PER_FRAME * sizeof(float) );
-			if ( decoded < 0 || decoded2 < 0 ) Sleep(1);
-			else {
-				assert( decoded == decoded2 );
-				for ( unsigned i = 0, j = decoded / sizeof(float); i < j; i++ ) {
-					float sample = sound_buffer[ 0 ][ i ] + sound_buffer[ 1 ][ i ];
-					sample *= sound_out_volume_float;
-					sound_buffer[ 0 ][ i ] = sample;
-				}
-				sound_driver->write_frame( sound_buffer[ 0 ], decoded / sizeof(float), true );
-			}
-		} else {
-			short sound_buffer[2][SAMPLES_PER_FRAME];
-			int decoded = BASS_ChannelGetData( hStream[ 0 ], sound_buffer[0], SAMPLES_PER_FRAME * sizeof(short) );
-			int decoded2 = BASS_ChannelGetData( hStream[ 1 ], sound_buffer[1], SAMPLES_PER_FRAME * sizeof(short) );
-			if ( decoded < 0 || decoded2 < 0 ) Sleep(1);
-			else {
-				assert( decoded == decoded2 );
-				for ( unsigned i = 0, j = decoded / sizeof(short); i < j; i++ ) {
-					int sample = sound_buffer[ 0 ][ i ] + sound_buffer[ 1 ][ i ];
-					sample = ( sample * sound_out_volume_int ) >> 12;
-					if ( ( sample + 0x8000 ) & 0xFFFF0000 ) sample = 0x7FFF ^ ( sample >> 31 );
-					sound_buffer[ 0 ][ i ] = sample;
-				}
-				sound_driver->write_frame( sound_buffer[ 0 ], decoded / sizeof(short), true );
-			}
+			LeaveCriticalSection(&bass_section);
 		}
 	}
+	if (hStOutput)
+		BASS_ChannelStop(hStOutput);
+	else if (basswasapi)
+		BASS_WASAPI_Stop(TRUE);
 	stop_thread=0;
 	if (hStream[ 1 ])
 	{
@@ -897,6 +1028,16 @@ unsigned __stdcall threadfunc(LPVOID lpV){
 		BASS_StreamFree( hStream[ 0 ] );
 		hStream[ 0 ] = 0;
 	}
+	if (hStOutput)
+	{
+		BASS_StreamFree( hStOutput );
+		hStOutput = 0;
+	}
+	if (basswasapi) {
+		BASS_WASAPI_Free();
+		FreeLibrary(basswasapi);
+		basswasapi = 0;
+	}
 	if (bassmidi) {
 		FreeFonts(1);
 		FreeFonts(0);
@@ -907,14 +1048,6 @@ unsigned __stdcall threadfunc(LPVOID lpV){
 		BASS_Free();
 		FreeLibrary(bass);
 		bass = 0;
-	}
-	if ( sound_driver ) {
-		delete sound_driver;
-		sound_driver = NULL;
-	}
-	if ( com_initialized ) {
-		CoUninitialize();
-		com_initialized = FALSE;
 	}
 	_endthreadex(0);
 	return 0;
@@ -930,6 +1063,7 @@ void DoStartClient() {
 		DWORD result;
 		unsigned int thrdaddr;
 		InitializeCriticalSection(&mim_section);
+		InitializeCriticalSection(&bass_section);
 		processPriority = GetPriorityClass(GetCurrentProcess());
 		SetPriorityClass(GetCurrentProcess(), REALTIME_PRIORITY_CLASS);
 		load_sfevent = CreateEvent( 
@@ -958,6 +1092,7 @@ void DoStopClient() {
 		modm_closed = 1;
 		SetPriorityClass(GetCurrentProcess(), processPriority);
 	}
+	DeleteCriticalSection(&bass_section);
 	DeleteCriticalSection(&mim_section);
 }
 

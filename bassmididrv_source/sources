@@ -48,8 +48,4 @@ C_DEFINES= $(C_DEFINES) -DDEBUG_LEVEL=DEBUGLVL_VERBOSE
 #C_DEFINES= $(C_DEFINES) -DDEBUG_LEVEL=DEBUGLVL_BLAB
 
 SOURCES=            \
-	bassmididrv.cpp  \
-	dsound.cpp        \
-	sound_out_dsound.cpp  \
-	sound_out_xaudio2.cpp  
-
+	bassmididrv.cpp
