@@ -923,6 +923,7 @@ unsigned __stdcall threadfunc(LPVOID lpV){
 					continue;
 				}
 				SAMPLE_RATE_USED = winfo.freq;
+				sound_out_float = FALSE;
 				switch (winfo.format) {
 				case BASS_WASAPI_FORMAT_8BIT:
 					wasapi_bits = 8;
