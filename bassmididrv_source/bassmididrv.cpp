@@ -661,6 +661,9 @@ int bmsyn_play_some_data(void){
 	return played;
 }
 
+static void load_settings();
+static int check_preload();
+
 DWORD CALLBACK StreamProc(HSTREAM handle, void *buffer, DWORD length, void *user)
 {
 	DWORD bytes_done = 0;
@@ -670,6 +673,22 @@ DWORD CALLBACK StreamProc(HSTREAM handle, void *buffer, DWORD length, void *user
 		while (length) {
 			int samples_todo = length > SAMPLES_PER_FRAME ? SAMPLES_PER_FRAME : length;
 			EnterCriticalSection(&bass_section);
+
+			if (reset_synth[ 0 ] != 0){
+				reset_synth[ 0 ] = 0;
+				load_settings();
+				BASS_MIDI_StreamEvent( hStream[ 0 ], 0, MIDI_EVENT_SYSTEM, MIDI_SYSTEM_DEFAULT );
+				if (check_preload())
+					BASS_MIDI_StreamLoadSamples( hStream[0] );
+			}
+			if (reset_synth[ 1 ] != 0){
+				reset_synth[ 1 ] = 0;
+				load_settings();
+				BASS_MIDI_StreamEvent( hStream[ 1 ], 0, MIDI_EVENT_SYSTEM, MIDI_SYSTEM_DEFAULT );
+				if (check_preload())
+					BASS_MIDI_StreamLoadSamples( hStream[1] );
+			}
+
 			bmsyn_play_some_data();
 			int decoded = BASS_ChannelGetData( hStream[ 0 ], sound_buffer[0], BASS_DATA_FLOAT + samples_todo * sizeof(float) );
 			int decoded2 = BASS_ChannelGetData( hStream[ 1 ], sound_buffer[1], BASS_DATA_FLOAT + samples_todo * sizeof(float) );
@@ -768,7 +787,7 @@ DWORD CALLBACK WasapiProc(void *buffer, DWORD length, void *user)
 	}
 }
 
-void load_settings()
+static void load_settings()
 {
 	int config_volume;
 	HKEY hKey;
@@ -783,7 +802,7 @@ void load_settings()
 	sound_out_volume_int = (int)(sound_out_volume_float * (float)0x1000);
 }
 
-int check_sinc()
+static int check_sinc()
 {
 	DWORD sinc = 0;
 	HKEY hKey;
@@ -796,7 +815,7 @@ int check_sinc()
 	return sinc;
 }
 
-int check_preload()
+static int check_preload()
 {
 	DWORD preload = 1;
 	HKEY hKey;
@@ -994,25 +1013,7 @@ unsigned __stdcall threadfunc(LPVOID lpV){
 		BASS_WASAPI_Start();
 
 	while(stop_thread == 0){
-		Sleep(10);
-		if (reset_synth[ 0 ] != 0){
-			reset_synth[ 0 ] = 0;
-			load_settings();
-			EnterCriticalSection(&bass_section);
-			BASS_MIDI_StreamEvent( hStream[ 0 ], 0, MIDI_EVENT_SYSTEM, MIDI_SYSTEM_DEFAULT );
-			if (check_preload())
-				BASS_MIDI_StreamLoadSamples( hStream[0] );
-			LeaveCriticalSection(&bass_section);
-		}
-		if (reset_synth[ 1 ] != 0){
-			reset_synth[ 1 ] = 0;
-			load_settings();
-			EnterCriticalSection(&bass_section);
-			BASS_MIDI_StreamEvent( hStream[ 1 ], 0, MIDI_EVENT_SYSTEM, MIDI_SYSTEM_DEFAULT );
-			if (check_preload())
-				BASS_MIDI_StreamLoadSamples( hStream[1] );
-			LeaveCriticalSection(&bass_section);
-		}
+		Sleep(100);
 	}
 	if (hStOutput)
 		BASS_ChannelStop(hStOutput);
