@@ -167,6 +167,9 @@ NEXT2:
    File output\bassmididrv.dll 
    File output\bassmididrvcfg.exe
    File output\sfpacker.exe
+!ifndef INNER
+   File $%TEMP%\bassmididrvuninstall.exe
+!endif
    ;check if already installed
    StrCpy  $1 "0"
 LOOP3:
