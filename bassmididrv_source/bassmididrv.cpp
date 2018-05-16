@@ -469,7 +469,7 @@ STDAPI_(LRESULT) DriverProc(DWORD_PTR dwDriverId, HDRVR hdrvr, UINT uMsg, LPARAM
 		Calling OpenDriver, described in the Win32 SDK. This function calls SendDriverMessage to
 		send DRV_LOAD and DRV_ENABLE messages only if the driver has not been previously loaded,
 		and then to send DRV_OPEN.
-		· Calling CloseDriver, described in the Win32 SDK. This function calls SendDriverMessage to
+		Â· Calling CloseDriver, described in the Win32 SDK. This function calls SendDriverMessage to
 		send DRV_CLOSE and, if there are no other open instances of the driver, to also send
 		DRV_DISABLE and DRV_FREE.
 */
@@ -1184,11 +1184,28 @@ STDAPI_(DWORD) modMessage(UINT uDeviceID, UINT uMsg, DWORD_PTR dwUser, DWORD_PTR
 	case MODM_OPEN:
 		return DoOpenClient(driver, uDeviceID, reinterpret_cast<LONG*>(dwUser), reinterpret_cast<MIDIOPENDESC*>(dwParam1), static_cast<DWORD>(dwParam2));
 	case MODM_PREPARE:
-		/*If the driver returns MMSYSERR_NOTSUPPORTED, winmm.dll prepares the buffer for use. For
-most drivers, this behavior is sufficient.*/
-		return MMSYSERR_NOTSUPPORTED;
+		// Reference the MIDIHDR
+		IIMidiHdr = (MIDIHDR *)dwParam1;
+
+		// Lock the MIDIHDR buffer, to prevent the MIDI app from accidentally writing to it
+		VirtualLock(IIMidiHdr->lpData, IIMidiHdr->dwBufferLength);
+
+		// Mark the buffer as prepared, and say that everything is oki-doki
+		IIMidiHdr->dwFlags |= MHDR_PREPARED;
+		return MMSYSERR_NOERROR;
 	case MODM_UNPREPARE:
-		return MMSYSERR_NOTSUPPORTED;
+		// Reference the MIDIHDR
+		IIMidiHdr = (MIDIHDR *)dwParam1;
+
+		// Check if the MIDIHDR buffer is valid
+		if (!IIMidiHdr) return MMSYSERR_INVALPARAM;								// The buffer doesn't exist, invalid parameter
+		if (IIMidiHdr->dwFlags & MHDR_INQUEUE) return MIDIERR_STILLPLAYING;					// The buffer is currently being played from the driver, cannot unprepare
+
+		IIMidiHdr->dwFlags &= ~MHDR_PREPARED;									// Mark the buffer as unprepared
+
+		// Unlock the buffer, and return Ret
+		VirtualUnlock(IIMidiHdr->lpData, IIMidiHdr->dwBufferLength);
+		return MMSYSERR_NOERROR;
 	case MODM_GETNUMDEVS:
 		return 0x2;
 	case MODM_GETDEVCAPS:
