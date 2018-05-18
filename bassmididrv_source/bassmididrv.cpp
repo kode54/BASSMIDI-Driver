@@ -66,7 +66,6 @@ static int driverCount=0;
 static volatile int OpenCount = 0;
 static volatile int modm_closed = 1;
 
-static CRITICAL_SECTION mim_section;
 static CRITICAL_SECTION bass_section;
 static volatile int stop_thread = 0;
 static volatile int reset_synth[2] = {0, 0};
@@ -574,20 +573,12 @@ struct evbuf_t{
 	int exlen;
 	unsigned char *sysexbuffer;
 };
-#define EVBUFF_SIZE 512
+#define EVBUFF_SIZE 2048
 static struct evbuf_t evbuf[EVBUFF_SIZE];
-static UINT  evbwpoint=0;
-static UINT  evbrpoint=0;
+static volatile LONG evbwpoint=0;
+static volatile LONG evbrpoint=0;
 static volatile LONG evbcount=0;
 static UINT evbsysexpoint;
-
-int bmsyn_buf_check(void){
-	int retval;
-	EnterCriticalSection(&mim_section);
-	retval = evbcount;
-	LeaveCriticalSection(&mim_section);
-	return retval;
-}
 
 static const unsigned char sysex_gm_reset[] = { 0xF0, 0x7E, 0x7F, 0x09, 0x01, 0xF7 };
 static const unsigned char sysex_gm2_reset[]= { 0xF0, 0x7E, 0x7F, 0x09, 0x03, 0xF7 };
@@ -607,40 +598,24 @@ static BOOL is_gs_reset(const unsigned char * data, unsigned size)
 }
 
 int bmsyn_play_some_data(void){
-	UINT uDeviceID;
-	UINT uMsg;
-	DWORD_PTR	dwParam1;
-	DWORD_PTR   dwParam2;
-	
-	UINT evbpoint;
-	int exlen;
-	unsigned char *sysexbuffer;
 	int played;
-		
+	
 	played=0;
-		if( !bmsyn_buf_check() ){ 
+		if( !evbcount ){ 
 			played=~0;
 			return played;
 		}
 		do{
-			EnterCriticalSection(&mim_section);
 			evbpoint=evbrpoint;
 			if (++evbrpoint >= EVBUFF_SIZE)
-					evbrpoint -= EVBUFF_SIZE;
-
-			uDeviceID=evbuf[evbpoint].uDeviceID;
-			uMsg=evbuf[evbpoint].uMsg;
-			dwParam1=evbuf[evbpoint].dwParam1;
-			dwParam2=evbuf[evbpoint].dwParam2;
-		    exlen=evbuf[evbpoint].exlen;
-			sysexbuffer=evbuf[evbpoint].sysexbuffer;
+					evbrpoint -= EVBUFF_SIZE;		
+			evbuf_t tempevent = evbuf[evbpoint];
 			
-			LeaveCriticalSection(&mim_section);
 			switch (uMsg) {
 			case MODM_DATA:
-				dwParam2 = dwParam1 & 0xF0;
-				exlen = ( dwParam2 >= 0xF8 && dwParam2 <= 0xFF ) ? 1 : (( dwParam2 == 0xC0 || dwParam2 == 0xD0 ) ? 2 : 3);
-				BASS_MIDI_StreamEvents( hStream[uDeviceID], BASS_MIDI_EVENTS_RAW, &dwParam1, exlen );
+				tempevent.dwParam2 = tempevent.dwParam1 & 0xF0;
+				tempevent.exlen = ( tempevent.dwParam2 >= 0xF8 && tempevent.dwParam2 <= 0xFF ) ? 1 : (( tempevent.dwParam2 == 0xC0 || tempevent.dwParam2 == 0xD0 ) ? 2 : 3);
+				BASS_MIDI_StreamEvents( hStream[tempevent.uDeviceID], BASS_MIDI_EVENTS_RAW, &tempevent.dwParam1, tempevent.exlen );
 				break;
 			case MODM_LONGDATA:
 #ifdef DEBUG
@@ -653,7 +628,7 @@ int bmsyn_play_some_data(void){
 	}
 	fclose(logfile);
 #endif
-				BASS_MIDI_StreamEvents( hStream[uDeviceID], BASS_MIDI_EVENTS_RAW, sysexbuffer, exlen );
+				BASS_MIDI_StreamEvents( hStream[tempevent.uDeviceID], BASS_MIDI_EVENTS_RAW, tempevent.sysexbuffer, tempevent.exlen );
 				free(sysexbuffer);
 				break;
 			}
@@ -1244,22 +1219,20 @@ STDAPI_(DWORD) modMessage(UINT uDeviceID, UINT uMsg, DWORD_PTR dwUser, DWORD_PTR
 		DoCallback(uDeviceID, static_cast<LONG>(dwUser), MOM_DONE, dwParam1, 0);
 		//fallthrough
 	case MODM_DATA:
-		EnterCriticalSection(&mim_section);
 		evbpoint = evbwpoint;
 		if (++evbwpoint >= EVBUFF_SIZE)
 			evbwpoint -= EVBUFF_SIZE;
-		evbuf[evbpoint].uDeviceID = !!uDeviceID;
-		evbuf[evbpoint].uMsg = uMsg;
-		evbuf[evbpoint].dwParam1 = dwParam1;
-		evbuf[evbpoint].dwParam2 = dwParam2;
-		evbuf[evbpoint].exlen=exlen;
-		evbuf[evbpoint].sysexbuffer=sysexbuffer;
-		LeaveCriticalSection(&mim_section);
+			
+		evbuf_t tempevent;
+		tempevent.uDeviceID = !!uDeviceID;
+		tempevent.uMsg = uMsg;
+		tempevent.dwParam1 = dwParam1;
+		tempevent.dwParam2 = dwParam2;
+		tempevent.exlen=exlen;
+		tempevent.sysexbuffer=sysexbuffer;		
+		evbuf[evbpoint] = tempevent;
 		if (InterlockedIncrement(&evbcount)>=EVBUFF_SIZE) {
-			do 
-			{
-				Sleep(1);
-			} while (evbcount >= EVBUFF_SIZE);			
+			do { /* Nothing */ } while (evbcount >= EVBUFF_SIZE);			
 		}
 		return MMSYSERR_NOERROR;
 
