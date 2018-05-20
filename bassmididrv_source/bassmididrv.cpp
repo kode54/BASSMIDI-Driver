@@ -66,6 +66,7 @@ static int driverCount=0;
 static volatile int OpenCount = 0;
 static volatile int modm_closed = 1;
 
+static CRITICAL_SECTION mim_section;
 static CRITICAL_SECTION bass_section;
 static volatile int stop_thread = 0;
 static volatile int reset_synth[2] = {0, 0};
@@ -570,8 +571,6 @@ struct evbuf_t{
 	UINT   uMsg;
 	DWORD_PTR	dwParam1;
 	DWORD_PTR	dwParam2;
-	int exlen;
-	unsigned char *sysexbuffer;
 };
 #define EVBUFF_SIZE 2048
 static struct evbuf_t evbuf[EVBUFF_SIZE];
@@ -580,36 +579,29 @@ static volatile LONG evbrpoint=0;
 static volatile LONG evbcount=0;
 static UINT evbsysexpoint;
 
-static const unsigned char sysex_gm_reset[] = { 0xF0, 0x7E, 0x7F, 0x09, 0x01, 0xF7 };
-static const unsigned char sysex_gm2_reset[]= { 0xF0, 0x7E, 0x7F, 0x09, 0x03, 0xF7 };
-static const unsigned char sysex_gs_reset[] = { 0xF0, 0x41, 0x10, 0x42, 0x12, 0x40, 0x00, 0x7F, 0x00, 0x41, 0xF7 };
-static const unsigned char sysex_xg_reset[] = { 0xF0, 0x43, 0x10, 0x4C, 0x00, 0x00, 0x7E, 0x00, 0xF7 };
-
-static BOOL is_gs_reset(const unsigned char * data, unsigned size)
-{
-	if ( size != _countof( sysex_gs_reset ) ) return FALSE;
-
-	if ( memcmp( data, sysex_gs_reset, 5 ) != 0 ) return FALSE;
-	if ( memcmp( data + 7, sysex_gs_reset + 7, 2 ) != 0 ) return  FALSE;
-	if ( ( ( data[ 5 ] + data[ 6 ] + 1 ) & 127 ) != data[ 9 ] ) return  FALSE;
-	if ( data[ 10 ] != sysex_gs_reset[ 10 ] ) return  FALSE;
-
-	return TRUE;
+int bmsyn_buf_check(void){
+	int retval;
+	EnterCriticalSection(&mim_section);
+	retval = evbcount;
+	LeaveCriticalSection(&mim_section);
+	return retval;
 }
 
 int bmsyn_play_some_data(void){
 	int played;
 	
 	played=0;
-		if( !evbcount ){ 
+		if( !bmsyn_buf_check() ){ 
 			played=~0;
 			return played;
 		}
 		do{
+			EnterCriticalSection(&mim_section);
 			evbpoint=evbrpoint;
 			if (++evbrpoint >= EVBUFF_SIZE)
 					evbrpoint -= EVBUFF_SIZE;		
 			evbuf_t tempevent = evbuf[evbpoint];
+			LeaveCriticalSection(&mim_section);
 			
 			switch (uMsg) {
 			case MODM_DATA:
@@ -617,22 +609,7 @@ int bmsyn_play_some_data(void){
 				tempevent.exlen = ( tempevent.dwParam2 >= 0xF8 && tempevent.dwParam2 <= 0xFF ) ? 1 : (( tempevent.dwParam2 == 0xC0 || tempevent.dwParam2 == 0xD0 ) ? 2 : 3);
 				BASS_MIDI_StreamEvents( hStream[tempevent.uDeviceID], BASS_MIDI_EVENTS_RAW, &tempevent.dwParam1, tempevent.exlen );
 				break;
-			case MODM_LONGDATA:
-#ifdef DEBUG
-	FILE * logfile;
-	logfile = fopen("c:\\dbglog2.log","at");
-	if(logfile!=NULL) {
-		for(int i = 0 ; i < exlen ; i++)
-			fprintf(logfile,"%x ", sysexbuffer[i]);
-		fprintf(logfile,"\n");
-	}
-	fclose(logfile);
-#endif
-				BASS_MIDI_StreamEvents( hStream[tempevent.uDeviceID], BASS_MIDI_EVENTS_RAW, tempevent.sysexbuffer, tempevent.exlen );
-				free(sysexbuffer);
-				break;
-			}
-		}while(InterlockedDecrement(&evbcount));
+		} while (InterlockedDecrement(&evbcount));
 	return played;
 }
 
@@ -1163,7 +1140,7 @@ STDAPI_(DWORD) modMessage(UINT uDeviceID, UINT uMsg, DWORD_PTR dwUser, DWORD_PTR
 		IIMidiHdr = (MIDIHDR *)dwParam1;
 
 		// Lock the MIDIHDR buffer, to prevent the MIDI app from accidentally writing to it
-		VirtualLock(IIMidiHdr->lpData, IIMidiHdr->dwBufferLength);
+		VirtualLock(IIMidiHdr->lpData, sizeof(IIMidiHdr->lpData));
 
 		// Mark the buffer as prepared, and say that everything is oki-doki
 		IIMidiHdr->dwFlags |= MHDR_PREPARED;
@@ -1171,71 +1148,61 @@ STDAPI_(DWORD) modMessage(UINT uDeviceID, UINT uMsg, DWORD_PTR dwUser, DWORD_PTR
 	case MODM_UNPREPARE:
 		// Reference the MIDIHDR
 		IIMidiHdr = (MIDIHDR *)dwParam1;
-
+			
 		// Check if the MIDIHDR buffer is valid
 		if (!IIMidiHdr) return MMSYSERR_INVALPARAM;								// The buffer doesn't exist, invalid parameter
 		if (IIMidiHdr->dwFlags & MHDR_INQUEUE) return MIDIERR_STILLPLAYING;					// The buffer is currently being played from the driver, cannot unprepare
 
 		IIMidiHdr->dwFlags &= ~MHDR_PREPARED;									// Mark the buffer as unprepared
 
-		// Unlock the buffer, and return Ret
-		VirtualUnlock(IIMidiHdr->lpData, IIMidiHdr->dwBufferLength);
+		// Unlock the buffer, and say that everything is oki-doki
+		VirtualUnlock(IIMidiHdr->lpData, sizeof(IIMidiHdr->lpData));
 		return MMSYSERR_NOERROR;
 	case MODM_GETNUMDEVS:
 		return 0x2;
 	case MODM_GETDEVCAPS:
 		return modGetCaps(uDeviceID, reinterpret_cast<MIDIOUTCAPS*>(dwParam1), static_cast<DWORD>(dwParam2));
 	case MODM_LONGDATA:
+		// Reference the MIDIHDR
 		IIMidiHdr = (MIDIHDR *)dwParam1;
-		if( !(IIMidiHdr->dwFlags & MHDR_PREPARED) ) return MIDIERR_UNPREPARED;
+
+		if (!(IIMidiHdr->dwFlags & MHDR_PREPARED)) return MIDIERR_UNPREPARED;
+
+		// Mark the buffer as in queue
 		IIMidiHdr->dwFlags &= ~MHDR_DONE;
 		IIMidiHdr->dwFlags |= MHDR_INQUEUE;
-		exlen=(int)IIMidiHdr->dwBufferLength;
-		if( NULL == (sysexbuffer = (unsigned char *)malloc(exlen * sizeof(char)))){
-			return MMSYSERR_NOMEM;
-		}else{
-			memcpy(sysexbuffer,IIMidiHdr->lpData,exlen);
-#ifdef DEBUG
-	FILE * logfile;
-	logfile = fopen("c:\\dbglog.log","at");
-	if(logfile!=NULL) {
-		fprintf(logfile,"sysex %d byete\n", exlen);
-		for(int i = 0 ; i < exlen ; i++)
-			fprintf(logfile,"%x ", sysexbuffer[i]);
-		fprintf(logfile,"\n");
-	}
-	fclose(logfile);
-#endif
-		}
-		/*
-		TODO: 	When the buffer contents have been sent, the driver should set the MHDR_DONE flag, clear the
-			MHDR_INQUEUE flag, and send the client a MOM_DONE callback message.
+
+		// Moving long events to a buffer is not safe,
+		// better play them as soon as they get received.
+		BASS_MIDI_StreamEvents(hStream[!!uDeviceID], BASS_MIDI_EVENTS_RAW, IIMidiHdr->lpData, sizeof(IIMidiHdr->lpData));	
 			
-			
-			In other words, these three lines should be done when the evbuf[evbpoint] is sent.
-		*/
+		// Mark the buffer as done
 		IIMidiHdr->dwFlags &= ~MHDR_INQUEUE;
 		IIMidiHdr->dwFlags |= MHDR_DONE;
+			
+		// Tell the app that the buffer has been played	
 		DoCallback(uDeviceID, static_cast<LONG>(dwUser), MOM_DONE, dwParam1, 0);
-		//fallthrough
+		return MMSYSERR_NOERROR;
 	case MODM_DATA:
+		EnterCriticalSection(&mim_section);
 		evbpoint = evbwpoint;
 		if (++evbwpoint >= EVBUFF_SIZE)
 			evbwpoint -= EVBUFF_SIZE;
 			
-		evbuf_t tempevent;
-		tempevent.uDeviceID = !!uDeviceID;
-		tempevent.uMsg = uMsg;
-		tempevent.dwParam1 = dwParam1;
-		tempevent.dwParam2 = dwParam2;
-		tempevent.exlen=exlen;
-		tempevent.sysexbuffer=sysexbuffer;		
+		evbuf_t tempevent {
+			uDeviceID = !!uDeviceID,
+			uMsg = uMsg,
+			dwParam1 = dwParam1,
+			dwParam2 = dwParam2
+		};
+		
 		evbuf[evbpoint] = tempevent;
+		LeaveCriticalSection(&mim_section);
+		
 		if (InterlockedIncrement(&evbcount)>=EVBUFF_SIZE) {
 			do { /* Nothing */ } while (evbcount >= EVBUFF_SIZE);			
 		}
 		return MMSYSERR_NOERROR;
-
 	case MODM_GETVOLUME : {
 		*(LONG*)dwParam1 = static_cast<LONG>(sound_out_volume_float * 0xFFFF);
 		return MMSYSERR_NOERROR;
