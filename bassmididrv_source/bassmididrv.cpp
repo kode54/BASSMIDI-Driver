@@ -1182,7 +1182,7 @@ STDAPI_(DWORD) modMessage(UINT uDeviceID, UINT uMsg, DWORD_PTR dwUser, DWORD_PTR
 			
 		// Tell the app that the buffer has been played	
 		DoCallback(uDeviceID, static_cast<LONG>(dwUser), MOM_DONE, dwParam1, 0);
-		//fallthrough
+		return MMSYSERR_NOERROR;
 	case MODM_DATA:
 		EnterCriticalSection(&mim_section);
 		evbpoint = evbwpoint;
@@ -1203,7 +1203,6 @@ STDAPI_(DWORD) modMessage(UINT uDeviceID, UINT uMsg, DWORD_PTR dwUser, DWORD_PTR
 			do { /* Nothing */ } while (evbcount >= EVBUFF_SIZE);			
 		}
 		return MMSYSERR_NOERROR;
-
 	case MODM_GETVOLUME : {
 		*(LONG*)dwParam1 = static_cast<LONG>(sound_out_volume_float * 0xFFFF);
 		return MMSYSERR_NOERROR;
