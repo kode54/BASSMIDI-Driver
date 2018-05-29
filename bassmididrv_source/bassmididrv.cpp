@@ -43,6 +43,7 @@ void _endthreadex( unsigned retval );
 #define FRAMES_WASAPI 30
 #define FRAMES_DSOUND 60
 #define SAMPLE_RATE_DEFAULT 44100
+#define LONGMSG_MAXSIZE	65535
 
 static DWORD SAMPLE_RATE_USED = SAMPLE_RATE_DEFAULT;
 
@@ -1139,8 +1140,11 @@ STDAPI_(DWORD) modMessage(UINT uDeviceID, UINT uMsg, DWORD_PTR dwUser, DWORD_PTR
 		// Reference the MIDIHDR
 		IIMidiHdr = (MIDIHDR *)dwParam1;
 
+		if (sizeof(lpMidiOutHdr->lpData) > LONGMSG_MAXSIZE) return MMSYSERR_INVALPARAM;	// The buffer is too big, invalid parameter
+			
 		// Lock the MIDIHDR buffer, to prevent the MIDI app from accidentally writing to it
-		VirtualLock(IIMidiHdr->lpData, sizeof(IIMidiHdr->lpData));
+		if (!VirtualLock(lpMidiOutHdr->lpData, sizeof(lpMidiOutHdr->lpData))) 
+			return MMSYSERR_NOMEM;							// Failed to lock the buffer, the working set is not big enough
 
 		// Mark the buffer as prepared, and say that everything is oki-doki
 		IIMidiHdr->dwFlags |= MHDR_PREPARED;
@@ -1150,10 +1154,12 @@ STDAPI_(DWORD) modMessage(UINT uDeviceID, UINT uMsg, DWORD_PTR dwUser, DWORD_PTR
 		IIMidiHdr = (MIDIHDR *)dwParam1;
 			
 		// Check if the MIDIHDR buffer is valid
-		if (!IIMidiHdr) return MMSYSERR_INVALPARAM;								// The buffer doesn't exist, invalid parameter
-		if (IIMidiHdr->dwFlags & MHDR_INQUEUE) return MIDIERR_STILLPLAYING;					// The buffer is currently being played from the driver, cannot unprepare
+		if (!IIMidiHdr) return MMSYSERR_INVALPARAM;					// The buffer doesn't exist, invalid parameter
+		if (!(IIMidiHdr->dwFlags & MHDR_PREPARED)) return MMSYSERR_NOERROR;		// Already unprepared, everything is fine
+		if (IIMidiHdr->dwFlags & MHDR_INQUEUE) return MIDIERR_STILLPLAYING;		// The buffer is currently being played from the driver, cannot unprepare
 
-		IIMidiHdr->dwFlags &= ~MHDR_PREPARED;									// Mark the buffer as unprepared
+		// Mark the buffer as unprepared
+		IIMidiHdr->dwFlags &= ~MHDR_PREPARED;
 
 		// Unlock the buffer, and say that everything is oki-doki
 		VirtualUnlock(IIMidiHdr->lpData, sizeof(IIMidiHdr->lpData));
