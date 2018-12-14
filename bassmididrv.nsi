@@ -15,7 +15,7 @@ Name "BASSMIDI System Synth"
 
   !system "$%TEMP%\tempinstaller.exe" = 2
 
-  !system "e:\signit.bat $%TEMP%\bassmididrvuninstall.exe" = 0
+;  !system "e:\signit.bat $%TEMP%\bassmididrvuninstall.exe" = 0
 
   ; The file to write
   OutFile "bassmididrv.exe"
