@@ -27,6 +27,7 @@
 /drivercfg/*.dll
 /drivercfg/*.exe
 /drivercfg/x64
+/drivercfg/.vs
 /sfpacker/*.opensdf
 /sfpacker/*.sdf
 /sfpacker/*.vcxproj.user
@@ -37,6 +38,7 @@
 /sfpacker/Debug
 /sfpacker/*.dll
 /sfpacker/*.exe
+/sfpacker/.vs
 /output/
 git_ver.h
 bassmididrv.exe
