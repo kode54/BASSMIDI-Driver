@@ -1,4 +1,4 @@
-/*
+﻿/*
     BASSMIDI Driver
 */
 
@@ -580,7 +580,7 @@ static volatile LONG evbrpoint=0;
 static volatile LONG evbcount=0;
 static UINT evbsysexpoint;
 
-int bmsyn_buf_check(void){
+static int bmsyn_buf_check(void){
 	int retval;
 	EnterCriticalSection(&mim_section);
 	retval = evbcount;
@@ -588,8 +588,12 @@ int bmsyn_buf_check(void){
 	return retval;
 }
 
-int bmsyn_play_some_data(void){
+static int bmsyn_play_some_data(void){
 	int played;
+	UINT evbpoint;
+	UINT evcode;
+	UINT evtype;
+	UINT exlen;
 	
 	played=0;
 		if( !bmsyn_buf_check() ){ 
@@ -604,12 +608,14 @@ int bmsyn_play_some_data(void){
 			evbuf_t tempevent = evbuf[evbpoint];
 			LeaveCriticalSection(&mim_section);
 			
-			switch (uMsg) {
+			switch (tempevent.uMsg) {
 			case MODM_DATA:
-				tempevent.dwParam2 = tempevent.dwParam1 & 0xF0;
-				tempevent.exlen = ( tempevent.dwParam2 >= 0xF8 && tempevent.dwParam2 <= 0xFF ) ? 1 : (( tempevent.dwParam2 == 0xC0 || tempevent.dwParam2 == 0xD0 ) ? 2 : 3);
-				BASS_MIDI_StreamEvents( hStream[tempevent.uDeviceID], BASS_MIDI_EVENTS_RAW, &tempevent.dwParam1, tempevent.exlen );
+				evcode = tempevent.dwParam1;
+				evtype = evcode & 0xF0;
+				exlen = ( evcode >= 0xF8 && evcode <= 0xFF ) ? 1 : (( evtype == 0xC0 || evtype == 0xD0 ) ? 2 : 3);
+				BASS_MIDI_StreamEvents( hStream[tempevent.uDeviceID], BASS_MIDI_EVENTS_RAW, &tempevent.dwParam1, exlen );
 				break;
+			}
 		} while (InterlockedDecrement(&evbcount));
 	return played;
 }
@@ -737,10 +743,11 @@ DWORD CALLBACK WasapiProc(void *buffer, DWORD length, void *user)
 			bytes_done += (bytes_done_this / 2) * bytes_per_sample;
 			length -= (bytes_done_this / 2) * bytes_per_sample;
 		}
+		return bytes_done;
 	}
 }
 
-static void load_settings()
+void load_settings()
 {
 	int config_volume;
 	HKEY hKey;
@@ -1140,10 +1147,10 @@ STDAPI_(DWORD) modMessage(UINT uDeviceID, UINT uMsg, DWORD_PTR dwUser, DWORD_PTR
 		// Reference the MIDIHDR
 		IIMidiHdr = (MIDIHDR *)dwParam1;
 
-		if (sizeof(lpMidiOutHdr->lpData) > LONGMSG_MAXSIZE) return MMSYSERR_INVALPARAM;	// The buffer is too big, invalid parameter
+		if (sizeof(IIMidiHdr->lpData) > LONGMSG_MAXSIZE) return MMSYSERR_INVALPARAM;	// The buffer is too big, invalid parameter
 			
 		// Lock the MIDIHDR buffer, to prevent the MIDI app from accidentally writing to it
-		if (!VirtualLock(lpMidiOutHdr->lpData, sizeof(lpMidiOutHdr->lpData))) 
+		if (!VirtualLock(IIMidiHdr->lpData, sizeof(IIMidiHdr->lpData))) 
 			return MMSYSERR_NOMEM;							// Failed to lock the buffer, the working set is not big enough
 
 		// Mark the buffer as prepared, and say that everything is oki-doki
@@ -1189,17 +1196,17 @@ STDAPI_(DWORD) modMessage(UINT uDeviceID, UINT uMsg, DWORD_PTR dwUser, DWORD_PTR
 		// Tell the app that the buffer has been played	
 		DoCallback(uDeviceID, static_cast<LONG>(dwUser), MOM_DONE, dwParam1, 0);
 		return MMSYSERR_NOERROR;
-	case MODM_DATA:
+	case MODM_DATA: {
 		EnterCriticalSection(&mim_section);
 		evbpoint = evbwpoint;
 		if (++evbwpoint >= EVBUFF_SIZE)
 			evbwpoint -= EVBUFF_SIZE;
 			
 		evbuf_t tempevent {
-			uDeviceID = !!uDeviceID,
-			uMsg = uMsg,
-			dwParam1 = dwParam1,
-			dwParam2 = dwParam2
+			!!uDeviceID,
+			uMsg,
+			dwParam1,
+			dwParam2
 		};
 		
 		evbuf[evbpoint] = tempevent;
@@ -1209,6 +1216,7 @@ STDAPI_(DWORD) modMessage(UINT uDeviceID, UINT uMsg, DWORD_PTR dwUser, DWORD_PTR
 			do { /* Nothing */ } while (evbcount >= EVBUFF_SIZE);			
 		}
 		return MMSYSERR_NOERROR;
+	}
 	case MODM_GETVOLUME : {
 		*(LONG*)dwParam1 = static_cast<LONG>(sound_out_volume_float * 0xFFFF);
 		return MMSYSERR_NOERROR;
